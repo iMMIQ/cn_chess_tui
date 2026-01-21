@@ -1,5 +1,6 @@
 use crate::board::Board;
 use crate::types::{Color, Position};
+use crate::fen::FenError;
 use std::fmt::{self, Display, Formatter};
 
 /// Result of a completed game
@@ -274,6 +275,27 @@ impl Game {
     /// Force a game state for testing purposes
     pub fn force_state_for_testing(&mut self, state: GameState) {
         self.state = state;
+    }
+
+    /// Create a game from a FEN string
+    pub fn from_fen(fen: &str) -> Result<Self, FenError> {
+        let (board, turn) = crate::fen::fen_to_board(fen)?;
+
+        Ok(Self {
+            board,
+            turn,
+            move_history: Vec::new(),
+            state: GameState::Playing,
+        })
+    }
+
+    /// Export the current game state to FEN format
+    pub fn to_fen(&self) -> String {
+        // Calculate full move number from history
+        // Each full move = two half-moves (one by each side)
+        let full_move_count = (self.move_history.len() / 2) + 1;
+
+        crate::fen::board_to_fen(&self.board, self.turn, 0, full_move_count as u32)
     }
 }
 

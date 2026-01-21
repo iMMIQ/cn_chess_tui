@@ -1,5 +1,6 @@
 mod types;
 mod board;
+mod fen;
 mod game;
 mod ui;
 

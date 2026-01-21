@@ -5,7 +5,7 @@ pub mod types;
 pub mod ui;
 
 pub use board::Board;
-pub use fen::{FenError};
+pub use fen::{FenError, fen_to_board, board_to_fen};
 pub use game::{Game, GameResult, GameState, Move, MoveError};
 pub use types::{Color, Piece, PieceType, Position};
 
