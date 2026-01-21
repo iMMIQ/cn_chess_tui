@@ -8,8 +8,89 @@ use ratatui::{
     Frame,
 };
 
-const BOARD_WIDTH: u16 = 18;  // 9 files * 2 - 1 (with padding)
-const BOARD_HEIGHT: u16 = 20; // 10 ranks * 2 (with padding)
+// Base board dimensions (9x10 grid)
+const BOARD_COLS: usize = 9;
+const BOARD_ROWS: usize = 10;
+
+// Minimum terminal sizes
+const MIN_WIDTH: u16 = 40;
+const MIN_HEIGHT: u16 = 24;
+
+// Color scheme - Traditional Chinese inspired
+const C_PRIMARY: RColor = RColor::Cyan;
+const C_SECONDARY: RColor = RColor::LightBlue;
+const C_ACCENT: RColor = RColor::LightCyan;
+const C_GOLD: RColor = RColor::Yellow;
+const C_GRID: RColor = RColor::DarkGray;
+const C_RIVER: RColor = RColor::LightYellow;
+
+// Piece colors
+const C_RED_PIECE: RColor = RColor::Red;
+const C_BLACK_PIECE: RColor = RColor::Gray;
+
+// Highlight colors
+const C_CURSOR: RColor = RColor::Green;
+const C_SELECTION: RColor = RColor::Yellow;
+const C_CHECK: RColor = RColor::LightRed;
+
+// Border styles
+const BORDER_ALL: Borders = Borders::ALL;
+
+/// Responsive layout configuration
+#[derive(Debug, Clone)]
+struct LayoutConfig {
+    pub header_height: u16,
+    pub status_height: u16,
+    pub cell_width: u16,
+    pub cell_height: u16,
+    pub show_full_header: bool,
+    pub show_full_status: bool,
+    pub show_river_text: bool,
+    pub popup_width: u16,
+    pub popup_height: u16,
+}
+
+impl LayoutConfig {
+    fn from_terminal_size(size: Rect) -> Self {
+        let width = size.width;
+        let height = size.height;
+
+        let is_small = width < MIN_WIDTH || height < MIN_HEIGHT;
+        let is_very_small = width < 30 || height < 20;
+
+        let header_height = if is_very_small { 1 } else if is_small { 2 } else { 3 };
+        let status_height = if is_very_small { 1 } else { 2 };
+
+        // Cell sizing based on terminal width
+        let cell_width = if width >= 60 { 3 } else if width >= 45 { 2 } else { 1 };
+        let cell_height = 2;
+
+        let show_full_header = !is_small;
+        let show_full_status = !is_very_small;
+        let show_river_text = width >= 45;
+
+        let popup_width = (width * 60 / 100).min(40).max(25);
+        let popup_height = (height * 40 / 100).min(12).max(8);
+
+        LayoutConfig {
+            header_height,
+            status_height,
+            cell_width,
+            cell_height,
+            show_full_header,
+            show_full_status,
+            show_river_text,
+            popup_width,
+            popup_height,
+        }
+    }
+
+    fn cell_pos(&self, x: usize, y: usize) -> (u16, u16) {
+        let px = (x as u16) * self.cell_width + (self.cell_width / 2);
+        let py = (y as u16) * self.cell_height;
+        (px, py)
+    }
+}
 
 pub struct UI;
 
@@ -21,63 +102,110 @@ impl UI {
         selection: Option<Position>,
     ) {
         let size = f.area();
+        let config = LayoutConfig::from_terminal_size(size);
 
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(3),  // Header
-                Constraint::Min(0),     // Board
-                Constraint::Length(3),  // Status bar
+                Constraint::Length(config.header_height),
+                Constraint::Min(0),
+                Constraint::Length(config.status_height),
             ])
             .split(size);
 
-        Self::draw_header(f, chunks[0], game);
-        Self::draw_board(f, chunks[1], game, cursor, selection);
-        Self::draw_status(f, chunks[2], game);
+        Self::draw_header(f, chunks[0], game, &config);
+        Self::draw_board(f, chunks[1], game, cursor, selection, &config);
+        Self::draw_status(f, chunks[2], game, &config);
 
-        // Draw game over popup when game is not in Playing state
         if game.state() != GameState::Playing {
-            Self::draw_game_over_popup(f, size, game.state());
+            Self::draw_game_over_popup(f, size, game.state(), &config);
         }
     }
 
-    fn draw_header(f: &mut Frame, area: Rect, game: &Game) {
-        let title = "中国象棋 Chinese Chess";
+    fn draw_header(f: &mut Frame, area: Rect, game: &Game, config: &LayoutConfig) {
+        if area.height < 2 {
+            let title = if area.width < 20 { "象棋" } else { "中国象棋" };
+            let turn = match game.turn() {
+                Color::Red => "红",
+                Color::Black => "黑",
+            };
+            let check = if game.is_in_check() { "!" } else { "" };
+            let text = format!("{} {}{}{}", title, turn, check,
+                if game.is_in_check() { "将军" } else { "" });
+
+            f.render_widget(
+                Paragraph::new(text).style(Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD))
+                    .alignment(Alignment::Center),
+                area,
+            );
+            return;
+        }
+
+        if !config.show_full_header {
+            let turn = match game.turn() {
+                Color::Red => "红方",
+                Color::Black => "黑方",
+            };
+            let check = if game.is_in_check() { " 将军!" } else { "" };
+            let turn_color = match game.turn() {
+                Color::Red => C_RED_PIECE,
+                Color::Black => C_SECONDARY,
+            };
+
+            let line = vec![
+                Span::styled(" 中国象棋 ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+                Span::styled(turn, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
+                Span::styled(check, Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD)),
+            ];
+
+            f.render_widget(
+                Paragraph::new(Line::from(line))
+                    .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_PRIMARY)))
+                    .alignment(Alignment::Center),
+                area,
+            );
+            return;
+        }
+
         let turn_text = match game.turn() {
-            Color::Red => "红方执棋 Red's Turn",
-            Color::Black => "黑方执棋 Black's Turn",
+            Color::Red => " 红方执棋 ",
+            Color::Black => " 黑方执棋 ",
         };
-
-        let check_indicator = if game.is_in_check() {
-            " [将军! CHECK!]"
+        let turn_english = match game.turn() {
+            Color::Red => " Red's Turn ",
+            Color::Black => " Black's Turn ",
+        };
+        let (turn_color, check_symbol) = if game.is_in_check() {
+            (C_CHECK, " ✦ CHECK! ✦ ")
         } else {
-            ""
+            (match game.turn() {
+                Color::Red => C_RED_PIECE,
+                Color::Black => C_SECONDARY,
+            }, "")
         };
 
-        let spans = vec![
-            Span::styled(
-                title,
-                Style::default()
-                    .fg(RColor::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" | "),
-            Span::styled(
-                format!("{}{}", turn_text, check_indicator),
-                Style::default()
-                    .fg(match game.turn() {
-                        Color::Red => RColor::Red,
-                        Color::Black => RColor::Gray,
-                    })
-                    .add_modifier(Modifier::BOLD),
-            ),
+        let line1 = vec![
+            Span::styled("◆", Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD)),
+            Span::styled(" 中国象棋 Chinese Chess ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled("◆", Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD)),
         ];
 
-        let paragraph = Paragraph::new(Line::from(spans))
-            .block(Block::default().borders(Borders::ALL))
-            .alignment(Alignment::Center);
+        let line2 = vec![
+            Span::styled(turn_text, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
+            Span::styled(turn_english, Style::default().fg(C_ACCENT)),
+            if !check_symbol.is_empty() {
+                Span::styled(check_symbol, Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD))
+            } else {
+                Span::raw("")
+            },
+        ];
 
-        f.render_widget(paragraph, area);
+        f.render_widget(
+            Paragraph::new(vec![Line::from(line1), Line::from(line2)])
+                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_PRIMARY)))
+                .alignment(Alignment::Center),
+            area,
+        );
     }
 
     fn draw_board(
@@ -86,414 +214,264 @@ impl UI {
         game: &Game,
         cursor: Position,
         selected: Option<Position>,
+        config: &LayoutConfig,
     ) {
-        let board_area = Self::centered_rect(BOARD_WIDTH + 4, BOARD_HEIGHT + 2, area);
+        let board_width = (BOARD_COLS as u16) * config.cell_width + 2;
+        let board_height = (BOARD_ROWS as u16) * config.cell_height + 2;
+        let board_area = Self::centered_rect(board_width, board_height, area);
 
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title("棋盘 Board");
+        let block = if area.width > 30 {
+            Block::default()
+                .borders(BORDER_ALL)
+                .border_style(Style::default().fg(C_SECONDARY))
+                .title(Span::styled(" 棋盘 ", Style::default().fg(C_ACCENT)))
+        } else {
+            Block::default()
+                .borders(BORDER_ALL)
+                .border_style(Style::default().fg(C_SECONDARY))
+        };
 
         f.render_widget(block, board_area);
 
         let inner = board_area.inner(Margin::new(1, 1));
 
-        // Draw board grid lines
-        Self::draw_grid(f, inner);
-
-        // Draw river
-        Self::draw_river(f, inner);
-
-        // Draw palace diagonals
-        Self::draw_palace_lines(f, inner);
-
-        // Draw cursor highlight (green border)
-        Self::draw_cursor_highlight(f, inner, cursor);
-
-        // Draw selection highlight (yellow border)
-        if let Some(selected_pos) = selected {
-            Self::draw_selection_highlight(f, inner, selected_pos);
+        Self::draw_grid(f, inner, config);
+        if config.show_river_text {
+            Self::draw_river(f, inner, config);
         }
-
-        // Draw pieces
-        Self::draw_pieces(f, inner, game);
+        Self::draw_cursor_highlight(f, inner, cursor, config);
+        if let Some(sel) = selected {
+            Self::draw_selection_highlight(f, inner, sel, config);
+        }
+        Self::draw_pieces(f, inner, game, config);
     }
 
-    fn draw_grid(f: &mut Frame, area: Rect) {
-        let grid_style = Style::default().fg(RColor::DarkGray);
+    fn draw_grid(f: &mut Frame, area: Rect, config: &LayoutConfig) {
+        let grid_style = Style::default().fg(C_GRID);
+        let corner_style = Style::default().fg(C_SECONDARY);
 
-        // Draw the complete grid using proper box-drawing characters
-        for y in 0..10 {
-            for x in 0..9 {
-                let px = area.x + x as u16 * 2;
-                let py = area.y + y as u16 * 2;
+        for y in 0..BOARD_ROWS {
+            for x in 0..BOARD_COLS {
+                let (px, py) = config.cell_pos(x, y);
+                let px = area.x + px;
+                let py = area.y + py;
 
-                // Determine the character based on position
-                let c = match (x, y) {
-                    // Corners
-                    (0, 0) => "┌",           // Top-left
-                    (8, 0) => "┐",           // Top-right
-                    (0, 9) => "└",           // Bottom-left
-                    (8, 9) => "┘",           // Bottom-right
-
-                    // Top edge (excluding corners)
-                    (_, 0) => "┬",
-
-                    // Bottom edge (excluding corners)
-                    (_, 9) => "┴",
-
-                    // Left/right edges
-                    (0, y) if y > 0 && y < 9 => {
-                        // Special handling for river edges
-                        if y == 4 { "├" }     // Above river
-                        else if y == 5 { "├" } // Below river
-                        else { "├" }
-                    }
-                    (8, y) if y > 0 && y < 9 => {
-                        if y == 4 { "┤" }     // Above river
-                        else if y == 5 { "┤" } // Below river
-                        else { "┤" }
-                    }
-
-                    // Inner grid points
-                    (_, y) if y == 4 => "┼",  // Above river
-                    (_, y) if y == 5 => "┼",  // Below river
-                    _ => "┼",                  // Other intersections
+                let (c, is_corner) = if x == 0 && y == 0 {
+                    ("┌", true)
+                } else if x == BOARD_COLS - 1 && y == 0 {
+                    ("┐", true)
+                } else if x == 0 && y == BOARD_ROWS - 1 {
+                    ("└", true)
+                } else if x == BOARD_COLS - 1 && y == BOARD_ROWS - 1 {
+                    ("┘", true)
+                } else if x == 0 {
+                    ("├", false)
+                } else if x == BOARD_COLS - 1 {
+                    ("┤", false)
+                } else if y == 0 {
+                    ("┬", false)
+                } else if y == BOARD_ROWS - 1 {
+                    ("┴", false)
+                } else {
+                    ("┼", false)
                 };
 
-                // Draw the intersection character
-                let span = Span::styled(c, grid_style);
-                let paragraph = Paragraph::new(span);
-                let cell_area = Rect { x: px, y: py, width: 1, height: 1 };
-                f.render_widget(paragraph, cell_area);
+                let style = if is_corner { corner_style } else { grid_style };
+                f.render_widget(Paragraph::new(Span::styled(c, style)), Rect { x: px, y: py, width: 1, height: 1 });
 
-                // Draw horizontal line to the right (except on rightmost column)
-                if x < 8 {
-                    let h_span = Span::styled("─", grid_style);
-                    let h_paragraph = Paragraph::new(h_span);
-                    let h_area = Rect { x: px + 1, y: py, width: 1, height: 1 };
-                    f.render_widget(h_paragraph, h_area);
-                }
-            }
-
-            // Draw vertical line below (except on bottom row)
-            if y < 9 {
-                for x in 0..9 {
-                    let px = area.x + x as u16 * 2;
-                    let py = area.y + y as u16 * 2 + 1;
-
-                    // Don't draw vertical lines through the river (between y=4 and y=5)
-                    if y == 4 {
-                        continue;
+                // Horizontal lines
+                if x < BOARD_COLS - 1 && config.cell_width > 1 {
+                    for i in 1..config.cell_width {
+                        let hx = px + i;
+                        f.render_widget(
+                            Paragraph::new(Span::styled("─", grid_style)),
+                            Rect { x: hx, y: py, width: 1, height: 1 },
+                        );
                     }
+                }
+            }
 
-                    let v_span = Span::styled("│", grid_style);
-                    let v_paragraph = Paragraph::new(v_span);
-                    let v_area = Rect { x: px, y: py, width: 1, height: 1 };
-                    f.render_widget(v_paragraph, v_area);
+            // Vertical lines (skip river area)
+            if y < BOARD_ROWS - 1 {
+                for x in 0..BOARD_COLS {
+                    let (px, py) = config.cell_pos(x, y);
+                    let px = area.x + px;
+                    let py = area.y + py + 1;
+
+                    if y == 4 { continue; } // Skip river
+
+                    f.render_widget(
+                        Paragraph::new(Span::styled("│", grid_style)),
+                        Rect { x: px, y: py, width: 1, height: 1 },
+                    );
                 }
             }
         }
     }
 
-    fn draw_river(f: &mut Frame, area: Rect) {
-        // River is between y=4 and y=5 (at row 4*2 + 1 = 9)
-        let river_y = area.y + 9;
+    fn draw_river(f: &mut Frame, area: Rect, config: &LayoutConfig) {
+        let river_y = area.y + config.cell_height * 5;
 
-        // "楚河" (Chu River) on the left, "汉界" (Han Border) on the right
-        // Positioned nicely with proper spacing
-        let chu_he = "楚河 Chu River";
-        let han_jie = "汉界 Han Border";
+        let chu = " 楚河";
+        let han = "汉界";
 
-        // Left side - 楚河
-        let left_paragraph = Paragraph::new(chu_he)
-            .style(Style::default().fg(RColor::Yellow).add_modifier(Modifier::BOLD))
-            .alignment(Alignment::Left);
+        let river_style = Style::default().fg(C_RIVER).add_modifier(Modifier::BOLD);
 
-        let left_area = Rect {
-            x: area.x + 2,
-            y: river_y,
-            width: 14,
-            height: 1,
-        };
-        f.render_widget(left_paragraph, left_area);
+        let left_w = 6 * config.cell_width;
+        let right_w = 6 * config.cell_width;
 
-        // Right side - 汉界
-        let right_paragraph = Paragraph::new(han_jie)
-            .style(Style::default().fg(RColor::Yellow).add_modifier(Modifier::BOLD))
-            .alignment(Alignment::Right);
+        f.render_widget(
+            Paragraph::new(chu).style(river_style).alignment(Alignment::Left),
+            Rect { x: area.x, y: river_y, width: left_w, height: 1 },
+        );
 
-        let right_area = Rect {
-            x: area.x + BOARD_WIDTH - 14,
-            y: river_y,
-            width: 14,
-            height: 1,
-        };
-        f.render_widget(right_paragraph, right_area);
+        f.render_widget(
+            Paragraph::new(han).style(river_style).alignment(Alignment::Right),
+            Rect { x: area.x + (BOARD_COLS as u16) * config.cell_width - right_w, y: river_y, width: right_w, height: 1 },
+        );
     }
 
-    fn draw_palace_lines(f: &mut Frame, area: Rect) {
-        let palace_style = Style::default().fg(RColor::DarkGray);
-
-        // Top palace (Black) - diagonals from (3,0) to (5,2)
-        // This is the 3x3 palace area in the top half
-        let top_palace_x_start = 3;
-        let top_palace_y_start = 0;
-
-        // Draw diagonal from (3,0) to (5,2) - going down-right (\)
-        // We draw X characters at intermediate positions to create the diagonal effect
-        for i in 0..5 {
-            // Calculate position along the diagonal from (3,0) to (5,2)
-            // x goes from 3 to 5, y goes from 0 to 2
-            let progress = i as f64 / 4.0;
-            let px = top_palace_x_start as f64 + progress * 2.0;
-            let py = top_palace_y_start as f64 + progress * 2.0;
-
-            let screen_x = area.x + (px * 2.0).round() as u16;
-            let screen_y = area.y + (py * 2.0).round() as u16;
-
-            let span = Span::styled("X", palace_style);
-            let paragraph = Paragraph::new(span);
-            let cell_area = Rect { x: screen_x, y: screen_y, width: 1, height: 1 };
-            f.render_widget(paragraph, cell_area);
-        }
-
-        // Draw diagonal from (5,0) to (3,2) - going down-left (/)
-        for i in 0..5 {
-            let progress = i as f64 / 4.0;
-            let px = 5.0 - progress * 2.0;
-            let py = top_palace_y_start as f64 + progress * 2.0;
-
-            let screen_x = area.x + (px * 2.0).round() as u16;
-            let screen_y = area.y + (py * 2.0).round() as u16;
-
-            let span = Span::styled("X", palace_style);
-            let paragraph = Paragraph::new(span);
-            let cell_area = Rect { x: screen_x, y: screen_y, width: 1, height: 1 };
-            f.render_widget(paragraph, cell_area);
-        }
-
-        // Bottom palace (Red) - diagonals from (3,7) to (5,9)
-        let bottom_palace_x_start = 3;
-        let bottom_palace_y_start = 7;
-
-        // Draw diagonal from (3,7) to (5,9) - going down-right (\)
-        for i in 0..5 {
-            let progress = i as f64 / 4.0;
-            let px = bottom_palace_x_start as f64 + progress * 2.0;
-            let py = bottom_palace_y_start as f64 + progress * 2.0;
-
-            let screen_x = area.x + (px * 2.0).round() as u16;
-            let screen_y = area.y + (py * 2.0).round() as u16;
-
-            let span = Span::styled("X", palace_style);
-            let paragraph = Paragraph::new(span);
-            let cell_area = Rect { x: screen_x, y: screen_y, width: 1, height: 1 };
-            f.render_widget(paragraph, cell_area);
-        }
-
-        // Draw diagonal from (5,7) to (3,9) - going down-left (/)
-        for i in 0..5 {
-            let progress = i as f64 / 4.0;
-            let px = 5.0 - progress * 2.0;
-            let py = bottom_palace_y_start as f64 + progress * 2.0;
-
-            let screen_x = area.x + (px * 2.0).round() as u16;
-            let screen_y = area.y + (py * 2.0).round() as u16;
-
-            let span = Span::styled("X", palace_style);
-            let paragraph = Paragraph::new(span);
-            let cell_area = Rect { x: screen_x, y: screen_y, width: 1, height: 1 };
-            f.render_widget(paragraph, cell_area);
-        }
-    }
-
-    fn draw_pieces(f: &mut Frame, area: Rect, game: &Game) {
+    fn draw_pieces(f: &mut Frame, area: Rect, game: &Game, config: &LayoutConfig) {
         for (pos, piece) in game.board().pieces() {
-            let px = area.x + pos.x as u16 * 2;
-            let py = area.y + pos.y as u16 * 2;
+            let (px, py) = config.cell_pos(pos.x, pos.y);
+            let px = area.x + px;
+            let py = area.y + py;
 
-            // Color selection with improved styling
-            let (fg_color, bg_color) = match piece.color {
-                Color::Red => (RColor::Red, RColor::Reset),
-                Color::Black => (RColor::Black, RColor::Reset),
+            let fg = match piece.color {
+                Color::Red => C_RED_PIECE,
+                Color::Black => C_BLACK_PIECE,
             };
 
             let piece_text = piece.to_string();
+            let piece_width = config.cell_width.min(2);
 
-            // Create styled span with bold modifier and proper colors
-            let span = Span::styled(
-                piece_text,
-                Style::default()
-                    .fg(fg_color)
-                    .bg(bg_color)
-                    .add_modifier(Modifier::BOLD),
+            f.render_widget(
+                Paragraph::new(piece_text)
+                    .style(Style::default().fg(fg).add_modifier(Modifier::BOLD))
+                    .alignment(Alignment::Center),
+                Rect { x: px, y: py, width: piece_width, height: 1 },
             );
-
-            let paragraph = Paragraph::new(span).alignment(Alignment::Center);
-
-            // Center the piece in the cell
-            let cell_area = Rect {
-                x: px,
-                y: py,
-                width: 2,
-                height: 1,
-            };
-            f.render_widget(paragraph, cell_area);
         }
     }
 
-    fn draw_cursor_highlight(f: &mut Frame, inner: Rect, cursor: Position) {
-        let px = inner.x + cursor.x as u16 * 2;
-        let py = inner.y + cursor.y as u16 * 2;
+    fn draw_cursor_highlight(f: &mut Frame, inner: Rect, cursor: Position, config: &LayoutConfig) {
+        let (px, py) = config.cell_pos(cursor.x, cursor.y);
+        let px = inner.x + px;
+        let py = inner.y + py;
+        let w = config.cell_width.min(2);
 
-        let cursor_area = Rect {
-            x: px,
-            y: py,
-            width: 2,
-            height: 1,
-        };
-
-        let cursor_block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(RColor::Green));
-
-        f.render_widget(cursor_block, cursor_area);
+        f.render_widget(
+            Block::default().borders(BORDER_ALL).border_style(
+                Style::default().fg(C_CURSOR).add_modifier(Modifier::BOLD)
+            ),
+            Rect { x: px, y: py, width: w, height: 1 },
+        );
     }
 
-    fn draw_selection_highlight(f: &mut Frame, inner: Rect, selected: Position) {
-        let px = inner.x + selected.x as u16 * 2;
-        let py = inner.y + selected.y as u16 * 2;
+    fn draw_selection_highlight(f: &mut Frame, inner: Rect, selected: Position, config: &LayoutConfig) {
+        let (px, py) = config.cell_pos(selected.x, selected.y);
+        let px = inner.x + px;
+        let py = inner.y + py;
+        let w = config.cell_width.min(2);
 
-        let selection_area = Rect {
-            x: px,
-            y: py,
-            width: 2,
-            height: 1,
-        };
-
-        let selection_block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(RColor::Yellow));
-
-        f.render_widget(selection_block, selection_area);
+        f.render_widget(
+            Block::default().borders(BORDER_ALL).border_style(
+                Style::default().fg(C_SELECTION).add_modifier(Modifier::BOLD)
+            ),
+            Rect { x: px, y: py, width: w, height: 1 },
+        );
     }
 
-    fn draw_status(f: &mut Frame, area: Rect, game: &Game) {
-        let help_text = "Arrows: Move | Enter: Select | q: Quit | r: Restart | u: Undo";
-        let move_text = if game.get_moves().is_empty() {
-            "No moves yet".to_string()
+    fn draw_status(f: &mut Frame, area: Rect, game: &Game, config: &LayoutConfig) {
+        // Get move info once to avoid borrowing issues
+        let moves = game.get_moves();
+        let last_move_str = if moves.is_empty() {
+            " 无着法".to_string()
         } else {
-            let moves = game.get_moves();
-            let last_move = moves.last().unwrap();
-            format!("Last move: ({},{}) -> ({},{})", last_move.from.x, last_move.from.y, last_move.to.x, last_move.to.y)
+            let m = &moves[moves.len() - 1];
+            format!(" ({},{})→({},{})", m.from.x, m.from.y, m.to.x, m.to.y)
         };
+
+        if !config.show_full_status || area.height < 2 {
+            let turn = match game.turn() {
+                Color::Red => "红",
+                Color::Black => "黑",
+            };
+            let text = format!("{}{} 方向键 Enter q:Quit", turn, last_move_str);
+
+            f.render_widget(
+                Paragraph::new(text)
+                    .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                    .alignment(Alignment::Center),
+                area,
+            );
+            return;
+        }
+
+        let turn = match game.turn() {
+            Color::Red => "●红",
+            Color::Black => "●黑",
+        };
+        let turn_color = match game.turn() {
+            Color::Red => C_RED_PIECE,
+            Color::Black => C_SECONDARY,
+        };
+
+        let help = "Arrows:Move Enter:Select q:Quit r:Restart";
 
         let spans = vec![
-            Span::raw(help_text),
-            Span::raw(" | "),
-            Span::styled(move_text, Style::default().fg(RColor::Yellow)),
+            Span::styled("┈", Style::default().fg(C_SECONDARY)),
+            Span::styled(turn, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
+            Span::styled(last_move_str, Style::default().fg(C_GOLD)),
+            Span::styled(" | ", Style::default().fg(C_GRID)),
+            Span::styled(help, Style::default().fg(C_ACCENT)),
+            Span::styled("┈", Style::default().fg(C_SECONDARY)),
         ];
 
-        let paragraph = Paragraph::new(Line::from(spans))
-            .block(Block::default().borders(Borders::ALL))
-            .alignment(Alignment::Center);
-
-        f.render_widget(paragraph, area);
+        f.render_widget(
+            Paragraph::new(Line::from(spans))
+                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                .alignment(Alignment::Center),
+            area,
+        );
     }
 
-    /// Draw the game over popup with winner information
-    pub fn draw_game_over_popup(f: &mut Frame, area: Rect, state: GameState) {
-        let popup_area = Self::centered_rect(30, 8, area);
+    pub fn draw_game_over_popup(f: &mut Frame, area: Rect, state: GameState, config: &LayoutConfig) {
+        let popup_area = Self::centered_rect(config.popup_width, config.popup_height, area);
 
-        let (title_lines, title_color) = match state {
-            GameState::Checkmate(Color::Red) => (
-                vec![
-                    Line::from(""),
-                    Line::from(vec![
-                        Span::styled(
-                            "红方胜!",
-                            Style::default()
-                                .fg(RColor::Red)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ]),
-                    Line::from(vec![
-                        Span::styled(
-                            "Red Wins!",
-                            Style::default()
-                                .fg(RColor::Red)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ]),
-                ],
-                RColor::Red,
-            ),
-            GameState::Checkmate(Color::Black) => (
-                vec![
-                    Line::from(""),
-                    Line::from(vec![
-                        Span::styled(
-                            "黑方胜!",
-                            Style::default()
-                                .fg(RColor::Gray)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ]),
-                    Line::from(vec![
-                        Span::styled(
-                            "Black Wins!",
-                            Style::default()
-                                .fg(RColor::Gray)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ]),
-                ],
-                RColor::Gray,
-            ),
-            GameState::Stalemate => (
-                vec![
-                    Line::from(""),
-                    Line::from(vec![
-                        Span::styled(
-                            "和棋!",
-                            Style::default()
-                                .fg(RColor::Yellow)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ]),
-                    Line::from(vec![
-                        Span::styled(
-                            "Draw!",
-                            Style::default()
-                                .fg(RColor::Yellow)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                    ]),
-                ],
-                RColor::Yellow,
-            ),
-            GameState::Playing => return, // Don't show popup if still playing
+        let (text, color) = match state {
+            GameState::Checkmate(Color::Red) => ("★ 红方胜利!\nRed Wins!", C_RED_PIECE),
+            GameState::Checkmate(Color::Black) => ("★ 黑方胜利!\nBlack Wins!", C_SECONDARY),
+            GameState::Stalemate => ("♦ 和棋!\nDraw", C_GOLD),
+            GameState::Playing => return,
         };
 
-        let mut lines = title_lines;
-        lines.push(Line::from(""));
-        lines.push(Line::from("Press 'q' to quit"));
-        lines.push(Line::from("Press 'r' to restart"));
-
-        let paragraph = Paragraph::new(lines)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(title_color))
-                    .style(Style::default().bg(RColor::Black)),
-            )
-            .alignment(Alignment::Center);
+        let lines = vec![
+            Line::from(""),
+            Line::from(vec![Span::styled(text, Style::default().fg(color).add_modifier(Modifier::BOLD))]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("q", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+                Span::raw(":Quit  "),
+                Span::styled("r", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+                Span::raw(":Restart"),
+            ]),
+            Line::from(""),
+        ];
 
         f.render_widget(Clear, popup_area);
-        f.render_widget(paragraph, popup_area);
+        f.render_widget(
+            Paragraph::new(lines)
+                .block(
+                    Block::default()
+                        .borders(BORDER_ALL)
+                        .border_style(Style::default().fg(color).add_modifier(Modifier::BOLD))
+                )
+                .alignment(Alignment::Center),
+            popup_area,
+        );
     }
 
-    /// Helper function to center a rectangle within the given area
     fn centered_rect(width: u16, height: u16, r: Rect) -> Rect {
         let patch_layout = Layout::default()
             .direction(Direction::Vertical)

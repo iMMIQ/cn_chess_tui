@@ -13,7 +13,8 @@ use crossterm::{
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color as RColor, Style},
+    style::{Modifier, Style},
+    text::Span,
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
@@ -151,15 +152,18 @@ impl App {
     }
 
     fn draw_message(&self, f: &mut Frame, message: &str) {
+        use ratatui::style::Color as RColor;
+
         let size = f.area();
 
-        let msg_area = self.centered_rect(message.len() as u16 + 4, 3, size);
+        let msg_area = self.centered_rect(message.len() as u16 + 6, 3, size);
 
         let paragraph = Paragraph::new(message)
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(RColor::Cyan))
+                    .border_style(Style::default().fg(RColor::Cyan).add_modifier(Modifier::BOLD))
+                    .title(Span::styled(" 提示 Info ", Style::default().fg(RColor::LightCyan)))
                     .style(Style::default().bg(RColor::Black)),
             )
             .alignment(Alignment::Center);
