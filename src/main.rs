@@ -1,3 +1,5 @@
+mod types;
+
 fn main() {
-    println!("Chinese Chess TUI - Coming soon!");
+    println!("Chinese Chess TUI - Types defined!");
 }
