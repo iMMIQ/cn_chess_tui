@@ -297,38 +297,27 @@ impl Board {
             return false;
         }
 
-        // Soldiers cannot move backward
-        let forward = match color {
-            Color::Red => to.y < from.y, // Red moves up (decreasing Y)
-            Color::Black => to.y > from.y, // Black moves down (increasing Y)
-        };
-
-        if !forward {
-            // Sideways is allowed after crossing river
-            let crossed_river = match color {
-                Color::Red => from.y <= 4,
-                Color::Black => from.y >= 5,
-            };
-            if !crossed_river || from.on_same_rank(to) {
-                return false;
-            }
-        }
-
-        // Before crossing river, can only move forward
+        // Determine if soldier has crossed river
         let crossed_river = match color {
             Color::Red => from.y <= 4,
             Color::Black => from.y >= 5,
         };
 
-        if !crossed_river {
-            // Must move forward only
-            match color {
-                Color::Red => from.x == to.x && to.y == from.y - 1,
-                Color::Black => from.x == to.x && to.y == from.y + 1,
-            }
+        // Check if move is forward
+        let forward = match color {
+            Color::Red => to.y < from.y, // Red moves up (decreasing Y)
+            Color::Black => to.y > from.y, // Black moves down (increasing Y)
+        };
+
+        // Check if move is sideways
+        let sideways = from.on_same_rank(to);
+
+        if crossed_river {
+            // After crossing river: can move forward or sideways, not backward
+            forward || sideways
         } else {
-            // After crossing, can move forward or sideways
-            true
+            // Before crossing river: can only move forward
+            forward && !sideways
         }
     }
 
