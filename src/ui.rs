@@ -1,5 +1,5 @@
 use crate::game::Game;
-use crate::types::Color;
+use crate::types::{Color, Position};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Color as RColor, Modifier, Style},
@@ -14,7 +14,12 @@ const BOARD_HEIGHT: u16 = 20; // 10 ranks * 2 (with padding)
 pub struct UI;
 
 impl UI {
-    pub fn draw(f: &mut Frame, game: &Game) {
+    pub fn draw(
+        f: &mut Frame,
+        game: &Game,
+        cursor: Position,
+        selection: Option<Position>,
+    ) {
         let size = f.area();
 
         let chunks = Layout::default()
@@ -27,7 +32,7 @@ impl UI {
             .split(size);
 
         Self::draw_header(f, chunks[0], game);
-        Self::draw_board(f, chunks[1], game);
+        Self::draw_board(f, chunks[1], game, cursor, selection);
         Self::draw_status(f, chunks[2], game);
     }
 
@@ -70,7 +75,13 @@ impl UI {
         f.render_widget(paragraph, area);
     }
 
-    fn draw_board(f: &mut Frame, area: Rect, game: &Game) {
+    fn draw_board(
+        f: &mut Frame,
+        area: Rect,
+        game: &Game,
+        cursor: Position,
+        selected: Option<Position>,
+    ) {
         let board_area = Self::centered_rect(BOARD_WIDTH + 4, BOARD_HEIGHT + 2, area);
 
         let block = Block::default()
@@ -89,6 +100,14 @@ impl UI {
 
         // Draw palace diagonals
         Self::draw_palace_lines(f, inner);
+
+        // Draw cursor highlight (green border)
+        Self::draw_cursor_highlight(f, inner, cursor);
+
+        // Draw selection highlight (yellow border)
+        if let Some(selected_pos) = selected {
+            Self::draw_selection_highlight(f, inner, selected_pos);
+        }
 
         // Draw pieces
         Self::draw_pieces(f, inner, game);
@@ -316,6 +335,42 @@ impl UI {
             };
             f.render_widget(paragraph, cell_area);
         }
+    }
+
+    fn draw_cursor_highlight(f: &mut Frame, inner: Rect, cursor: Position) {
+        let px = inner.x + cursor.x as u16 * 2;
+        let py = inner.y + cursor.y as u16 * 2;
+
+        let cursor_area = Rect {
+            x: px,
+            y: py,
+            width: 2,
+            height: 1,
+        };
+
+        let cursor_block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(RColor::Green));
+
+        f.render_widget(cursor_block, cursor_area);
+    }
+
+    fn draw_selection_highlight(f: &mut Frame, inner: Rect, selected: Position) {
+        let px = inner.x + selected.x as u16 * 2;
+        let py = inner.y + selected.y as u16 * 2;
+
+        let selection_area = Rect {
+            x: px,
+            y: py,
+            width: 2,
+            height: 1,
+        };
+
+        let selection_block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(RColor::Yellow));
+
+        f.render_widget(selection_block, selection_area);
     }
 
     fn draw_status(f: &mut Frame, area: Rect, game: &Game) {

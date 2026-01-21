@@ -21,9 +21,6 @@ use ratatui::{
 use std::io;
 use std::time::{Duration, Instant};
 
-const BOARD_WIDTH: u16 = 17;  // 9 files * 2 - 1
-const BOARD_HEIGHT: u16 = 19; // 10 ranks * 2 - 1
-
 /// Selection state for piece movement
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SelectionState {
@@ -130,16 +127,14 @@ impl App {
     }
 
     fn draw(&mut self, f: &mut Frame) {
-        // Draw the main game UI
-        ui::UI::draw(f, &self.game);
+        // Convert SelectionState to Option<Position>
+        let selection = match self.selection {
+            SelectionState::SelectingSource => None,
+            SelectionState::SelectingDestination(pos) => Some(pos),
+        };
 
-        // Draw cursor
-        self.draw_cursor(f);
-
-        // Draw selection highlight
-        if let SelectionState::SelectingDestination(source) = self.selection {
-            self.draw_selection(f, source);
-        }
+        // Draw the main game UI with cursor and selection
+        ui::UI::draw(f, &self.game, self.cursor, selection);
 
         // Draw message overlay if active
         if let Some(ref msg) = self.message {
@@ -154,56 +149,6 @@ impl App {
         if !matches!(self.game.state(), crate::game::GameState::Playing) {
             self.draw_game_over(f);
         }
-    }
-
-    fn draw_cursor(&self, f: &mut Frame) {
-        let size = f.area();
-
-        // Calculate board area (same as in UI::draw_board)
-        let board_area = self.centered_rect(BOARD_WIDTH + 4, BOARD_HEIGHT + 2, size);
-        let inner = board_area.inner(ratatui::layout::Margin::new(1, 1));
-
-        let px = inner.x + self.cursor.x as u16 * 2;
-        let py = inner.y + self.cursor.y as u16 * 2;
-
-        // Draw cursor as a highlighted background
-        let cursor_area = Rect {
-            x: px,
-            y: py,
-            width: 2,
-            height: 1,
-        };
-
-        let cursor_block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(RColor::Green));
-
-        f.render_widget(cursor_block, cursor_area);
-    }
-
-    fn draw_selection(&self, f: &mut Frame, source: Position) {
-        let size = f.area();
-
-        // Calculate board area
-        let board_area = self.centered_rect(BOARD_WIDTH + 4, BOARD_HEIGHT + 2, size);
-        let inner = board_area.inner(ratatui::layout::Margin::new(1, 1));
-
-        let px = inner.x + source.x as u16 * 2;
-        let py = inner.y + source.y as u16 * 2;
-
-        // Draw selection as a highlighted background
-        let selection_area = Rect {
-            x: px,
-            y: py,
-            width: 2,
-            height: 1,
-        };
-
-        let selection_block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(RColor::Yellow));
-
-        f.render_widget(selection_block, selection_area);
     }
 
     fn draw_message(&self, f: &mut Frame, message: &str) {
