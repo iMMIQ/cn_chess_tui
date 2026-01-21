@@ -167,6 +167,64 @@ pub fn fen_to_board(fen: &str) -> Result<(Board, Color), FenError> {
     Ok((board, turn))
 }
 
+/// Convert a Board position to FEN string format
+///
+/// Arguments:
+/// - board: The board to convert
+/// - turn: Current turn (Red or Black)
+/// - half_move_count: Number of half-moves since last capture/pawn move
+/// - full_move_count: Current full move number
+pub fn board_to_fen(board: &Board, turn: Color, half_move_count: u32, full_move_count: u32) -> String {
+    let mut fen_parts = Vec::new();
+
+    // Build board section
+    let mut rank_strings = Vec::new();
+
+    for y in 0..10 {
+        let mut rank_str = String::new();
+        let mut empty_count = 0;
+
+        for x in 0..9 {
+            let pos = Position::from_xy(x, y);
+            match board.get(pos) {
+                Some(piece) => {
+                    // Add empty count before piece
+                    if empty_count > 0 {
+                        rank_str.push_str(&empty_count.to_string());
+                        empty_count = 0;
+                    }
+                    rank_str.push(piece_to_fen(*piece));
+                }
+                None => {
+                    empty_count += 1;
+                }
+            }
+        }
+
+        // Add trailing empty count
+        if empty_count > 0 {
+            rank_str.push_str(&empty_count.to_string());
+        }
+
+        rank_strings.push(rank_str);
+    }
+
+    fen_parts.push(rank_strings.join("/"));
+
+    // Turn (always use 'w' for Red, 'b' for Black)
+    fen_parts.push(if turn == Color::Red { "w".to_string() } else { "b".to_string() });
+
+    // Chinese Chess doesn't have castling or en passant
+    fen_parts.push("-".to_string());
+    fen_parts.push("-".to_string());
+
+    // Move counts
+    fen_parts.push(half_move_count.to_string());
+    fen_parts.push(full_move_count.to_string());
+
+    fen_parts.join(" ")
+}
+
 // TODO: Add from_fen and to_fen functions in subsequent tasks
 
 #[cfg(test)]
