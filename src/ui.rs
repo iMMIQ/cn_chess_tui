@@ -37,8 +37,8 @@ const C_CHECK: RColor = RColor::LightRed;
 const BORDER_ALL: Borders = Borders::ALL;
 
 /// Responsive layout configuration
-#[derive(Debug, Clone)]
-struct LayoutConfig {
+#[derive(Debug, Clone, PartialEq)]
+pub struct LayoutConfig {
     pub header_height: u16,
     pub status_height: u16,
     pub cell_width: u16,
@@ -55,17 +55,35 @@ impl LayoutConfig {
         let width = size.width;
         let height = size.height;
 
-        let is_small = width < MIN_WIDTH || height < MIN_HEIGHT;
-        let is_very_small = width < 30 || height < 20;
+        // Calculate available height after accounting for header and status
+        let min_board_height = BOARD_ROWS as u16 * 2; // At least 20 for the board
+        let available_for_header_status = height.saturating_sub(min_board_height);
 
-        let header_height = if is_very_small { 1 } else if is_small { 2 } else { 3 };
-        let status_height = if is_very_small { 1 } else { 2 };
+        let is_small = width < MIN_WIDTH || height < MIN_HEIGHT;
+        let is_very_small = width < 30 || height < 22;
+        let is_tiny = height < 20;
+
+        let header_height = if is_tiny {
+            1
+        } else if is_very_small {
+            2
+        } else if is_small {
+            2
+        } else {
+            3
+        };
+
+        let status_height = if is_tiny || is_very_small {
+            1
+        } else {
+            2
+        };
 
         // Cell sizing based on terminal width
         let cell_width = if width >= 60 { 3 } else if width >= 45 { 2 } else { 1 };
         let cell_height = 2;
 
-        let show_full_header = !is_small;
+        let show_full_header = !is_small && !is_very_small;
         let show_full_status = !is_very_small;
         let show_river_text = width >= 45;
 
@@ -104,18 +122,35 @@ impl UI {
         let size = f.area();
         let config = LayoutConfig::from_terminal_size(size);
 
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(config.header_height),
-                Constraint::Min(0),
-                Constraint::Length(config.status_height),
-            ])
-            .split(size);
+        // For very small terminals, skip status bar
+        let total_ui_height = config.header_height + config.status_height;
+        let (chunks, show_status) = if size.height < total_ui_height + 20 {
+            // Not enough space - skip status bar
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(config.header_height),
+                    Constraint::Min(0),
+                ])
+                .split(size);
+            (chunks, false)
+        } else {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(config.header_height),
+                    Constraint::Min(0),
+                    Constraint::Length(config.status_height),
+                ])
+                .split(size);
+            (chunks, true)
+        };
 
         Self::draw_header(f, chunks[0], game, &config);
         Self::draw_board(f, chunks[1], game, cursor, selection, &config);
-        Self::draw_status(f, chunks[2], game, &config);
+        if show_status && chunks.len() > 2 {
+            Self::draw_status(f, chunks[2], game, &config);
+        }
 
         if game.state() != GameState::Playing {
             Self::draw_game_over_popup(f, size, game.state(), &config);

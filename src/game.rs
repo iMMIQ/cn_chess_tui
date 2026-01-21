@@ -269,6 +269,12 @@ impl Game {
     pub fn board_mut(&mut self) -> &mut Board {
         &mut self.board
     }
+
+    #[cfg(test)]
+    /// Force a game state for testing purposes
+    pub fn force_state_for_testing(&mut self, state: GameState) {
+        self.state = state;
+    }
 }
 
 impl Default for Game {
