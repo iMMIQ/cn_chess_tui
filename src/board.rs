@@ -16,6 +16,11 @@ impl Default for Board {
 }
 
 impl Board {
+    /// Create a board from a pieces HashMap (for FEN loading)
+    pub fn from_pieces(pieces: HashMap<Position, Piece>) -> Self {
+        Self { pieces }
+    }
+
     pub fn new() -> Self {
         let mut pieces = HashMap::new();
 

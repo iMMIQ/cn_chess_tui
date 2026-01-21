@@ -117,6 +117,56 @@ fn parse_rank(rank_str: &str, y: usize) -> Result<Vec<(Position, Piece)>, FenErr
     Ok(pieces)
 }
 
+/// Parse a FEN string and create a Board from it
+///
+/// Returns (Board, turn) tuple on success
+pub fn fen_to_board(fen: &str) -> Result<(Board, Color), FenError> {
+    let parts: Vec<&str> = fen.split_whitespace().collect();
+
+    if parts.len() != 6 {
+        return Err(FenError::InvalidFormat);
+    }
+
+    // Parse board section
+    let board_str = parts[0];
+    let ranks: Vec<&str> = board_str.split('/').collect();
+
+    if ranks.len() != 10 {
+        return Err(FenError::InvalidRankCount);
+    }
+
+    let mut pieces = HashMap::new();
+
+    for (y, rank_str) in ranks.iter().enumerate() {
+        let rank_pieces = parse_rank(rank_str, y)?;
+        for (pos, piece) in rank_pieces {
+            pieces.insert(pos, piece);
+        }
+    }
+
+    // Parse turn
+    let turn = match parts[1] {
+        "w" | "W" | "r" | "R" => Color::Red,  // Accept w, W, r, R as Red
+        "b" | "B" => Color::Black,
+        _ => return Err(FenError::InvalidTurn),
+    };
+
+    // Parts 2 and 3 are always "-" for Chinese Chess (no castling, no en passant)
+    // We don't need to validate them
+
+    // Parse move counts (optional validation)
+    if let Err(_) = parts[4].parse::<u32>() {
+        return Err(FenError::InvalidMoveCount);
+    }
+    if let Err(_) = parts[5].parse::<u32>() {
+        return Err(FenError::InvalidMoveCount);
+    }
+
+    let board = Board::from_pieces(pieces);
+
+    Ok((board, turn))
+}
+
 // TODO: Add from_fen and to_fen functions in subsequent tasks
 
 #[cfg(test)]
