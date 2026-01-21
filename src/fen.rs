@@ -42,7 +42,7 @@ impl std::fmt::Display for FenError {
 impl std::error::Error for FenError {}
 
 /// Parse a single piece character to a Piece
-fn parse_piece(ch: char) -> Option<Piece> {
+pub fn parse_piece(ch: char) -> Option<Piece> {
     let (piece_type, color) = match ch {
         // Red pieces (uppercase)
         'R' => (PieceType::Chariot, Color::Red),
@@ -118,3 +118,54 @@ fn parse_rank(rank_str: &str, y: usize) -> Result<Vec<(Position, Piece)>, FenErr
 }
 
 // TODO: Add from_fen and to_fen functions in subsequent tasks
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_initial_position() {
+        let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+        let result = fen_to_board(fen);
+        assert!(result.is_ok(), "Should parse initial position");
+
+        let (board, turn) = result.unwrap();
+        assert_eq!(turn, Color::Red);
+
+        // Check red general at (4, 9)
+        let red_general = board.get(Position::from_xy(4, 9));
+        assert!(red_general.is_some());
+        assert_eq!(red_general.unwrap().piece_type, PieceType::General);
+        assert_eq!(red_general.unwrap().color, Color::Red);
+
+        // Check black general at (4, 0)
+        let black_general = board.get(Position::from_xy(4, 0));
+        assert!(black_general.is_some());
+        assert_eq!(black_general.unwrap().piece_type, PieceType::General);
+        assert_eq!(black_general.unwrap().color, Color::Black);
+    }
+
+    #[test]
+    fn test_parse_piece_characters() {
+        assert_eq!(parse_piece('K'), Some(Piece::new(PieceType::General, Color::Red)));
+        assert_eq!(parse_piece('k'), Some(Piece::new(PieceType::General, Color::Black)));
+        assert_eq!(parse_piece('R'), Some(Piece::new(PieceType::Chariot, Color::Red)));
+        assert_eq!(parse_piece('r'), Some(Piece::new(PieceType::Chariot, Color::Black)));
+        assert_eq!(parse_piece('C'), Some(Piece::new(PieceType::Cannon, Color::Red)));
+        assert_eq!(parse_piece('c'), Some(Piece::new(PieceType::Cannon, Color::Black)));
+        assert_eq!(parse_piece('X'), None);
+    }
+
+    #[test]
+    fn test_fen_invalid_format() {
+        let result = fen_to_board("invalid");
+        assert!(matches!(result, Err(FenError::InvalidFormat)));
+    }
+
+    #[test]
+    fn test_fen_invalid_turn() {
+        let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR x - - 0 1";
+        let result = fen_to_board(fen);
+        assert!(matches!(result, Err(FenError::InvalidTurn)));
+    }
+}
