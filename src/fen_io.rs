@@ -43,7 +43,7 @@ pub fn write_fen_file<P: AsRef<Path>>(path: P, fen: &str) -> Result<(), std::io:
 ///
 /// # Errors
 /// Returns io::Error for file errors, or FenError for parsing errors
-pub fn load_fen_file<P: AsRef<Path>>(path: P) -> Result<(crate::Board, crate::types::Color), Box<dyn std::error::Error>> {
+pub fn load_fen_file<P: AsRef<Path>>(path: P) -> Result<(crate::board::Board, crate::types::Color), Box<dyn std::error::Error>> {
     let fen = read_fen_file(path)?;
     let (board, turn) = crate::fen::fen_to_board(&fen)?;
     Ok((board, turn))

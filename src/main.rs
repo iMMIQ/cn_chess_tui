@@ -1,10 +1,13 @@
 mod types;
 mod board;
 mod fen;
+mod fen_io;
+mod fen_print;
 mod game;
 mod ui;
 
 use crate::game::Game;
+use crate::fen::FenError;
 use crate::types::Position;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -20,7 +23,26 @@ use ratatui::{
     Frame,
 };
 use std::io;
+use std::process;
 use std::time::{Duration, Instant};
+
+fn print_usage() {
+    println!("Chinese Chess TUI - Usage:");
+    println!("  cn_chess_tui              Start a new game");
+    println!("  cn_chess_tui --print <fen> Print FEN position to terminal and exit");
+    println!("  cn_chess_tui --fen <fen>   Load and play from FEN string");
+    println!("  cn_chess_tui --file <path> Load and play from .fen file");
+    println!("  cn_chess_tui --help        Show this help message");
+}
+
+fn print_fen_position(fen: &str) -> Result<(), FenError> {
+    let game = Game::from_fen(fen)?;
+    println!("FEN: {}", game.to_fen());
+    println!("Turn: {}", game.turn());
+    println!();
+    fen_print::print_board_ascii(game.board());
+    Ok(())
+}
 
 /// Selection state for piece movement
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,6 +71,30 @@ impl App {
             message_time: Instant::now(),
             running: true,
         }
+    }
+
+    fn from_fen(fen: &str) -> Result<Self, FenError> {
+        Ok(Self {
+            game: Game::from_fen(fen)?,
+            cursor: Position::from_xy(4, 9),
+            selection: SelectionState::SelectingSource,
+            message: None,
+            message_time: Instant::now(),
+            running: true,
+        })
+    }
+
+    fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let fen = crate::fen_io::read_fen_file(path)?;
+        let game = Game::from_fen(&fen)?;
+        Ok(Self {
+            game,
+            cursor: Position::from_xy(4, 9),
+            selection: SelectionState::SelectingSource,
+            message: None,
+            message_time: Instant::now(),
+            running: true,
+        })
     }
 
     fn handle_key(&mut self, key: KeyCode) {
@@ -195,16 +241,13 @@ impl App {
     }
 }
 
-fn main() -> io::Result<()> {
+fn run_game(app: &mut App) -> io::Result<()> {
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = ratatui::Terminal::new(backend)?;
-
-    // Create app
-    let mut app = App::new();
 
     // Main loop
     let tick_rate = Duration::from_millis(100);
@@ -240,4 +283,86 @@ fn main() -> io::Result<()> {
     terminal.show_cursor()?;
 
     Ok(())
+}
+
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
+    // No arguments - start new game
+    if args.len() == 1 {
+        let mut app = App::new();
+        if let Err(e) = run_game(&mut app) {
+            eprintln!("Error running game: {}", e);
+            process::exit(1);
+        }
+        return;
+    }
+
+    // Parse CLI arguments
+    match args[1].as_str() {
+        "--help" | "-h" => {
+            print_usage();
+        }
+        "--print" => {
+            if args.len() < 3 {
+                eprintln!("Error: --print requires a FEN string");
+                println!();
+                print_usage();
+                process::exit(1);
+            }
+            let fen = &args[2];
+            if let Err(e) = print_fen_position(fen) {
+                eprintln!("Error parsing FEN: {}", e);
+                process::exit(1);
+            }
+        }
+        "--fen" => {
+            if args.len() < 3 {
+                eprintln!("Error: --fen requires a FEN string");
+                println!();
+                print_usage();
+                process::exit(1);
+            }
+            let fen = &args[2];
+            match App::from_fen(fen) {
+                Ok(mut app) => {
+                    if let Err(e) = run_game(&mut app) {
+                        eprintln!("Error running game: {}", e);
+                        process::exit(1);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error parsing FEN: {}", e);
+                    process::exit(1);
+                }
+            }
+        }
+        "--file" => {
+            if args.len() < 3 {
+                eprintln!("Error: --file requires a file path");
+                println!();
+                print_usage();
+                process::exit(1);
+            }
+            let path = &args[2];
+            match App::from_file(path) {
+                Ok(mut app) => {
+                    if let Err(e) = run_game(&mut app) {
+                        eprintln!("Error running game: {}", e);
+                        process::exit(1);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error loading file: {}", e);
+                    process::exit(1);
+                }
+            }
+        }
+        _ => {
+            eprintln!("Unknown argument: {}", args[1]);
+            println!();
+            print_usage();
+            process::exit(1);
+        }
+    }
 }
