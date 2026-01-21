@@ -359,8 +359,6 @@ impl Board {
         // Simulate move to check if it leaves king in check
         let mut test_board = self.clone();
         test_board.move_piece(from, to);
-        test_board.remove_piece(to); // Remove captured piece if any
-        test_board.place_piece(to, piece);
 
         // Check for flying general violation
         if test_board.generals_facing() {

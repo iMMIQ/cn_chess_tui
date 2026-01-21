@@ -95,7 +95,7 @@ impl Position {
         let x_ok = self.x >= 3 && self.x <= 5;
         let y_ok = match color {
             Color::Red => self.y >= 7 && self.y <= 9,
-            Color::Black => self.y >= 0 && self.y <= 2,
+            Color::Black => self.y <= 2,
         };
         x_ok && y_ok
     }
