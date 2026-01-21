@@ -122,12 +122,6 @@ impl Game {
         self.state
     }
 
-    /// Get the move history
-    pub fn move_history(&self) -> &[Move] {
-        // Extract just the moves from the history
-        self.move_history.iter().map(|r| r.mv).collect::<Vec<_>>().leak()
-    }
-
     /// Get a reference to the move history as a Vec
     pub fn get_moves(&self) -> Vec<Move> {
         self.move_history.iter().map(|r| r.mv).collect()
@@ -190,7 +184,11 @@ impl Game {
     pub fn undo_move(&mut self) -> bool {
         if let Some(record) = self.move_history.pop() {
             // Move the piece back
-            let piece = self.board.get(record.mv.to).copied().unwrap();
+            let piece = self
+                .board
+                .get(record.mv.to)
+                .copied()
+                .expect("undo_move: piece must exist at move destination");
             self.board.remove_piece(record.mv.to);
             self.board.place_piece(record.mv.from, piece);
 
