@@ -13,8 +13,7 @@ use crossterm::{
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color as RColor, Modifier, Style},
-    text::{Line, Span},
+    style::{Color as RColor, Style},
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
@@ -54,6 +53,10 @@ impl App {
         match key {
             KeyCode::Char('q') | KeyCode::Esc => {
                 self.running = false;
+            }
+            KeyCode::Char('r') => {
+                // Restart the game
+                *self = Self::new();
             }
             KeyCode::Char('u') => {
                 if self.game.undo_move() {
@@ -134,6 +137,7 @@ impl App {
         };
 
         // Draw the main game UI with cursor and selection
+        // (includes game over popup when game is not in Playing state)
         ui::UI::draw(f, &self.game, self.cursor, selection);
 
         // Draw message overlay if active
@@ -143,11 +147,6 @@ impl App {
             } else {
                 self.message = None;
             }
-        }
-
-        // Draw game over screen if game is over
-        if !matches!(self.game.state(), crate::game::GameState::Playing) {
-            self.draw_game_over(f);
         }
     }
 
@@ -167,48 +166,6 @@ impl App {
 
         f.render_widget(Clear, msg_area);
         f.render_widget(paragraph, msg_area);
-    }
-
-    fn draw_game_over(&self, f: &mut Frame) {
-        let size = f.area();
-
-        let overlay_area = self.centered_rect(40, 10, size);
-
-        let (title, color) = match self.game.state() {
-            crate::game::GameState::Checkmate(winner) => {
-                (format!("CHECKMATE! {} Wins!", winner), winner)
-            }
-            crate::game::GameState::Stalemate => ("STALEMATE - Draw".to_string(), crate::types::Color::Red),
-            _ => return,
-        };
-
-        let fg_color = match color {
-            crate::types::Color::Red => RColor::Red,
-            crate::types::Color::Black => RColor::Gray,
-        };
-
-        let lines = vec![
-            Line::from(vec![
-                Span::styled(
-                    title,
-                    Style::default().fg(fg_color).add_modifier(Modifier::BOLD),
-                ),
-            ]),
-            Line::from(""),
-            Line::from("Press 'q' to quit"),
-        ];
-
-        let paragraph = Paragraph::new(lines)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(RColor::Yellow))
-                    .style(Style::default().bg(RColor::Black)),
-            )
-            .alignment(Alignment::Center);
-
-        f.render_widget(Clear, overlay_area);
-        f.render_widget(paragraph, overlay_area);
     }
 
     /// Helper function to center a rectangle within the given area

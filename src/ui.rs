@@ -1,10 +1,10 @@
-use crate::game::Game;
+use crate::game::{Game, GameState};
 use crate::types::{Color, Position};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Color as RColor, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
 
@@ -34,6 +34,11 @@ impl UI {
         Self::draw_header(f, chunks[0], game);
         Self::draw_board(f, chunks[1], game, cursor, selection);
         Self::draw_status(f, chunks[2], game);
+
+        // Draw game over popup when game is not in Playing state
+        if game.state() != GameState::Playing {
+            Self::draw_game_over_popup(f, size, game.state());
+        }
     }
 
     fn draw_header(f: &mut Frame, area: Rect, game: &Game) {
@@ -374,7 +379,7 @@ impl UI {
     }
 
     fn draw_status(f: &mut Frame, area: Rect, game: &Game) {
-        let help_text = "Arrow keys: Move cursor | Enter: Select | q: Quit | u: Undo";
+        let help_text = "Arrows: Move | Enter: Select | q: Quit | r: Restart | u: Undo";
         let move_text = if game.get_moves().is_empty() {
             "No moves yet".to_string()
         } else {
@@ -394,6 +399,98 @@ impl UI {
             .alignment(Alignment::Center);
 
         f.render_widget(paragraph, area);
+    }
+
+    /// Draw the game over popup with winner information
+    pub fn draw_game_over_popup(f: &mut Frame, area: Rect, state: GameState) {
+        let popup_area = Self::centered_rect(30, 8, area);
+
+        let (title_lines, title_color) = match state {
+            GameState::Checkmate(Color::Red) => (
+                vec![
+                    Line::from(""),
+                    Line::from(vec![
+                        Span::styled(
+                            "红方胜!",
+                            Style::default()
+                                .fg(RColor::Red)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+                    Line::from(vec![
+                        Span::styled(
+                            "Red Wins!",
+                            Style::default()
+                                .fg(RColor::Red)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+                ],
+                RColor::Red,
+            ),
+            GameState::Checkmate(Color::Black) => (
+                vec![
+                    Line::from(""),
+                    Line::from(vec![
+                        Span::styled(
+                            "黑方胜!",
+                            Style::default()
+                                .fg(RColor::Gray)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+                    Line::from(vec![
+                        Span::styled(
+                            "Black Wins!",
+                            Style::default()
+                                .fg(RColor::Gray)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+                ],
+                RColor::Gray,
+            ),
+            GameState::Stalemate => (
+                vec![
+                    Line::from(""),
+                    Line::from(vec![
+                        Span::styled(
+                            "和棋!",
+                            Style::default()
+                                .fg(RColor::Yellow)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+                    Line::from(vec![
+                        Span::styled(
+                            "Draw!",
+                            Style::default()
+                                .fg(RColor::Yellow)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+                ],
+                RColor::Yellow,
+            ),
+            GameState::Playing => return, // Don't show popup if still playing
+        };
+
+        let mut lines = title_lines;
+        lines.push(Line::from(""));
+        lines.push(Line::from("Press 'q' to quit"));
+        lines.push(Line::from("Press 'r' to restart"));
+
+        let paragraph = Paragraph::new(lines)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(title_color))
+                    .style(Style::default().bg(RColor::Black)),
+            )
+            .alignment(Alignment::Center);
+
+        f.render_widget(Clear, popup_area);
+        f.render_widget(paragraph, popup_area);
     }
 
     /// Helper function to center a rectangle within the given area
