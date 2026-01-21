@@ -66,7 +66,7 @@ pub fn parse_piece(ch: char) -> Option<Piece> {
 }
 
 /// Convert a Piece to its FEN character representation
-fn piece_to_fen(piece: Piece) -> char {
+pub fn piece_to_fen(piece: Piece) -> char {
     match (piece.color, piece.piece_type) {
         (Color::Red, PieceType::Chariot) => 'R',
         (Color::Red, PieceType::Horse) => 'N',
@@ -217,5 +217,51 @@ mod tests {
         let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR x - - 0 1";
         let result = fen_to_board(fen);
         assert!(matches!(result, Err(FenError::InvalidTurn)));
+    }
+
+    #[test]
+    fn test_board_to_fen_initial_position() {
+        let board = Board::new();
+        let fen = board_to_fen(&board, Color::Red, 0, 1);
+
+        // The FEN should match the standard initial position
+        assert_eq!(fen, "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1");
+    }
+
+    #[test]
+    fn test_fen_roundtrip() {
+        let original_fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+        let (board, turn) = fen_to_board(original_fen).unwrap();
+        let reconstructed_fen = board_to_fen(&board, turn, 0, 1);
+
+        assert_eq!(original_fen, reconstructed_fen);
+    }
+
+    #[test]
+    fn test_piece_to_fen_characters() {
+        let red_k = piece_to_fen(Piece::new(PieceType::General, Color::Red));
+        assert_eq!(red_k, 'K');
+
+        let black_k = piece_to_fen(Piece::new(PieceType::General, Color::Black));
+        assert_eq!(black_k, 'k');
+
+        let red_c = piece_to_fen(Piece::new(PieceType::Cannon, Color::Red));
+        assert_eq!(red_c, 'C');
+    }
+
+    #[test]
+    fn test_board_to_fen_custom_position() {
+        // Create a simple position: just the two generals
+        let mut pieces = HashMap::new();
+        pieces.insert(Position::from_xy(4, 9), Piece::new(PieceType::General, Color::Red));
+        pieces.insert(Position::from_xy(4, 0), Piece::new(PieceType::General, Color::Black));
+
+        let board = Board::from_pieces(pieces);
+        let fen = board_to_fen(&board, Color::Red, 0, 1);
+
+        // Expected: 9/9/9/9/9/9/9/9/9/4K4 w - - 0 1
+        // But we need to check if it matches the correct format
+        assert!(fen.contains("4K4"), "FEN should contain '4K4' for red general");
+        assert!(fen.contains("4k4"), "FEN should contain '4k4' for black general");
     }
 }
