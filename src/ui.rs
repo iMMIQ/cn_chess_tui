@@ -12,10 +12,6 @@ use ratatui::{
 const BOARD_COLS: usize = 9;
 const BOARD_ROWS: usize = 10;
 
-// Minimum terminal sizes
-const MIN_WIDTH: u16 = 40;
-const MIN_HEIGHT: u16 = 24;
-
 // Color scheme - Traditional Chinese inspired
 const C_PRIMARY: RColor = RColor::Cyan;
 const C_SECONDARY: RColor = RColor::LightBlue;
@@ -37,15 +33,25 @@ const C_CHECK: RColor = RColor::LightRed;
 // Border styles
 const BORDER_ALL: Borders = Borders::ALL;
 
+/// Layout zone types for the new UI
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum LayoutZone {
+    /// Compact layout - board only with minimal info
+    Compact,
+    /// Standard layout - board + history
+    Standard,
+    /// Full layout - board + history + info panel
+    Full,
+}
+
 /// Responsive layout configuration
 #[derive(Debug, Clone, PartialEq)]
 pub struct LayoutConfig {
-    pub header_height: u16,
-    pub status_height: u16,
+    pub layout_zone: LayoutZone,
+    pub title_height: u16,
+    pub help_height: u16,
     pub cell_width: u16,
     pub cell_height: u16,
-    pub show_full_header: bool,
-    pub show_full_status: bool,
     pub show_river_text: bool,
     pub popup_width: u16,
     pub popup_height: u16,
@@ -56,46 +62,33 @@ impl LayoutConfig {
         let width = size.width;
         let height = size.height;
 
-        // Calculate available height after accounting for header and status
-        let min_board_height = BOARD_ROWS as u16 * 2; // At least 20 for the board
-        let _available_for_header_status = height.saturating_sub(min_board_height);
-
-        let is_small = width < MIN_WIDTH || height < MIN_HEIGHT;
-        let is_very_small = width < 30 || height < 22;
-        let is_tiny = height < 20;
-
-        let header_height = if is_tiny {
-            1
-        } else if is_very_small || is_small {
-            2
+        // Determine layout type based on terminal size
+        let layout_zone = if width < 80 || height < 26 {
+            LayoutZone::Compact
+        } else if width < 110 || height < 28 {
+            LayoutZone::Standard
         } else {
-            3
+            LayoutZone::Full
         };
 
-        let status_height = if is_tiny || is_very_small {
-            1
-        } else {
-            2
-        };
+        let title_height = 3;
+        let help_height = 3;
 
         // Cell sizing based on terminal width
-        let cell_width = if width >= 60 { 3 } else if width >= 45 { 2 } else { 1 };
+        let cell_width = if width >= 100 { 4 } else if width >= 70 { 3 } else { 2 };
         let cell_height = 2;
 
-        let show_full_header = !is_small && !is_very_small;
-        let show_full_status = !is_very_small;
-        let show_river_text = width >= 45;
+        let show_river_text = width >= 60;
 
-        let popup_width = (width * 60 / 100).clamp(25, 40);
-        let popup_height = (height * 40 / 100).clamp(8, 12);
+        let popup_width = (width * 50 / 100).clamp(30, 50);
+        let popup_height = (height * 40 / 100).clamp(10, 15);
 
         LayoutConfig {
-            header_height,
-            status_height,
+            layout_zone,
+            title_height,
+            help_height,
             cell_width,
             cell_height,
-            show_full_header,
-            show_full_status,
             show_river_text,
             popup_width,
             popup_height,
@@ -121,140 +114,186 @@ impl UI {
         let size = f.area();
         let config = LayoutConfig::from_terminal_size(size);
 
-        // For very small terminals, skip status bar
-        let total_ui_height = config.header_height + config.status_height;
-        let (chunks, show_status) = if size.height < total_ui_height + 20 {
-            // Not enough space - skip status bar
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(config.header_height),
-                    Constraint::Min(0),
-                ])
-                .split(size);
-            (chunks, false)
-        } else {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(config.header_height),
-                    Constraint::Min(0),
-                    Constraint::Length(config.status_height),
-                ])
-                .split(size);
-            (chunks, true)
-        };
+        // Main vertical layout: title + content + help
+        let main_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(config.title_height),
+                Constraint::Min(0),
+                Constraint::Length(config.help_height),
+            ])
+            .split(size);
 
-        Self::draw_header(f, chunks[0], game, &config);
+        // Draw title bar
+        Self::draw_title_bar(f, main_chunks[0], game, &config);
 
-        // For wide terminals, show move history panel on the right
-        if size.width >= 80 {
-            let board_chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Min(50), Constraint::Length(26)])
-                .split(chunks[1]);
-
-            Self::draw_board(f, board_chunks[0], game, cursor, selection, &config);
-            Self::draw_move_history(f, board_chunks[1], game, &config);
-        } else {
-            Self::draw_board(f, chunks[1], game, cursor, selection, &config);
+        // Draw content area based on layout type
+        match config.layout_zone {
+            LayoutZone::Compact => {
+                Self::draw_compact_layout(f, main_chunks[1], game, cursor, selection, &config);
+            }
+            LayoutZone::Standard => {
+                Self::draw_standard_layout(f, main_chunks[1], game, cursor, selection, &config);
+            }
+            LayoutZone::Full => {
+                Self::draw_full_layout(f, main_chunks[1], game, cursor, selection, &config);
+            }
         }
 
-        if show_status && chunks.len() > 2 {
-            Self::draw_status(f, chunks[2], game, &config);
-        }
+        // Draw help bar
+        Self::draw_help_bar(f, main_chunks[2], &config);
 
+        // Draw game over popup if needed
         if game.state() != GameState::Playing {
             Self::draw_game_over_popup(f, size, game.state(), &config);
         }
     }
 
-    fn draw_header(f: &mut Frame, area: Rect, game: &Game, config: &LayoutConfig) {
-        if area.height < 2 {
-            let title = if area.width < 20 { "象棋" } else { "中国象棋" };
-            let turn = match game.turn() {
-                Color::Red => "红",
-                Color::Black => "黑",
-            };
-            let check = if game.is_in_check() { "!" } else { "" };
-            let text = format!("{} {}{}{}", title, turn, check,
-                if game.is_in_check() { "将军" } else { "" });
+    /// Compact layout: board with minimal surrounding info
+    fn draw_compact_layout(
+        f: &mut Frame,
+        area: Rect,
+        game: &Game,
+        cursor: Position,
+        selected: Option<Position>,
+        config: &LayoutConfig,
+    ) {
+        // Split into board + small info panel
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Min(40), Constraint::Length(20)])
+            .split(area);
 
-            f.render_widget(
-                Paragraph::new(text).style(Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD))
-                    .alignment(Alignment::Center),
-                area,
-            );
-            return;
-        }
+        Self::draw_board(f, chunks[0], game, cursor, selected, config);
+        Self::draw_mini_info(f, chunks[1], game, config);
+    }
 
-        if !config.show_full_header {
-            let turn = match game.turn() {
-                Color::Red => "红方",
-                Color::Black => "黑方",
-            };
-            let check = if game.is_in_check() { " 将军!" } else { "" };
-            let turn_color = match game.turn() {
-                Color::Red => C_RED_PIECE,
-                Color::Black => C_SECONDARY,
-            };
+    /// Standard layout: board + move history
+    fn draw_standard_layout(
+        f: &mut Frame,
+        area: Rect,
+        game: &Game,
+        cursor: Position,
+        selected: Option<Position>,
+        config: &LayoutConfig,
+    ) {
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Min(50), Constraint::Length(28)])
+            .split(area);
 
-            let line = vec![
-                Span::styled(" 中国象棋 ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
-                Span::styled(turn, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
-                Span::styled(check, Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD)),
-            ];
+        Self::draw_board(f, chunks[0], game, cursor, selected, config);
+        Self::draw_move_history(f, chunks[1], game, config);
+    }
 
-            f.render_widget(
-                Paragraph::new(Line::from(line))
-                    .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_PRIMARY)))
-                    .alignment(Alignment::Center),
-                area,
-            );
-            return;
-        }
+    /// Full layout: board + history + info panel
+    fn draw_full_layout(
+        f: &mut Frame,
+        area: Rect,
+        game: &Game,
+        cursor: Position,
+        selected: Option<Position>,
+        config: &LayoutConfig,
+    ) {
+        // Split into board (left) and sidebar (right)
+        let horizontal_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Min(55), Constraint::Length(35)])
+            .split(area);
 
-        let turn_text = match game.turn() {
-            Color::Red => " 红方执棋 ",
-            Color::Black => " 黑方执棋 ",
-        };
-        let turn_english = match game.turn() {
-            Color::Red => " Red's Turn ",
-            Color::Black => " Black's Turn ",
-        };
-        let (turn_color, check_symbol) = if game.is_in_check() {
-            (C_CHECK, " ✦ CHECK! ✦ ")
-        } else {
-            (match game.turn() {
-                Color::Red => C_RED_PIECE,
-                Color::Black => C_SECONDARY,
-            }, "")
-        };
+        // Split sidebar into history (top) and info (bottom)
+        let sidebar_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(12), Constraint::Length(10)])
+            .split(horizontal_chunks[1]);
+
+        Self::draw_board(f, horizontal_chunks[0], game, cursor, selected, config);
+        Self::draw_move_history(f, sidebar_chunks[0], game, config);
+        Self::draw_game_info(f, sidebar_chunks[1], game, config);
+    }
+
+    /// Draw the title bar at the top
+    fn draw_title_bar(f: &mut Frame, area: Rect, game: &Game, _config: &LayoutConfig) {
+        let border_style = Style::default().fg(C_PRIMARY);
 
         let line1 = vec![
             Span::styled("◆", Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD)),
-            Span::styled(" 中国象棋 Chinese Chess ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(" 中国象棋 ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled("Chinese Chess ", Style::default().fg(C_ACCENT)),
             Span::styled("◆", Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD)),
         ];
 
+        let check_indicator = if game.is_in_check() {
+            Span::styled(" 将军! ", Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD))
+        } else {
+            Span::raw("")
+        };
+
+        let turn_text = match game.turn() {
+            Color::Red => " 红方 ",
+            Color::Black => " 黑方 ",
+        };
+        let turn_style = match game.turn() {
+            Color::Red => Style::default().fg(C_RED_PIECE).add_modifier(Modifier::BOLD),
+            Color::Black => Style::default().fg(C_BLACK_PIECE).add_modifier(Modifier::BOLD),
+        };
+
         let line2 = vec![
-            Span::styled(turn_text, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
-            Span::styled(turn_english, Style::default().fg(C_ACCENT)),
-            if !check_symbol.is_empty() {
-                Span::styled(check_symbol, Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD))
-            } else {
-                Span::raw("")
-            },
+            Span::styled("当前回合: ", Style::default().fg(C_SECONDARY)),
+            Span::styled(turn_text, turn_style),
+            check_indicator,
+            Span::styled(format!("着法: {}", game.get_moves().len()), Style::default().fg(C_GOLD)),
         ];
 
+        let line3 = vec![
+            Span::styled("┈", Style::default().fg(C_GRID)),
+            Span::styled(" q:退出 ", Style::default().fg(C_ACCENT)),
+            Span::styled(" r:重开 ", Style::default().fg(C_ACCENT)),
+            Span::styled(" u:撤销 ", Style::default().fg(C_ACCENT)),
+            Span::styled(" 方向键:移动 Enter:选择 ", Style::default().fg(C_SECONDARY)),
+            Span::styled("┈", Style::default().fg(C_GRID)),
+        ];
+
+        let lines = vec![Line::from(line1), Line::from(line2), Line::from(line3)];
+
         f.render_widget(
-            Paragraph::new(vec![Line::from(line1), Line::from(line2)])
-                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_PRIMARY)))
+            Paragraph::new(lines)
+                .block(Block::default().borders(BORDER_ALL).border_style(border_style))
                 .alignment(Alignment::Center),
             area,
         );
     }
 
+    /// Draw the help bar at the bottom
+    fn draw_help_bar(f: &mut Frame, area: Rect, _config: &LayoutConfig) {
+        let help_text = vec![
+            Line::from(vec![
+                Span::styled(" 快捷键 Help ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(vec![
+                Span::styled(" ↑↓←→ ", Style::default().fg(C_ACCENT)),
+                Span::styled("移动光标  ", Style::default().fg(C_SECONDARY)),
+                Span::styled(" Enter ", Style::default().fg(C_ACCENT)),
+                Span::styled("选择/确认  ", Style::default().fg(C_SECONDARY)),
+                Span::styled(" u ", Style::default().fg(C_ACCENT)),
+                Span::styled("撤销  ", Style::default().fg(C_SECONDARY)),
+                Span::styled(" r ", Style::default().fg(C_ACCENT)),
+                Span::styled("重开  ", Style::default().fg(C_SECONDARY)),
+                Span::styled(" q/Esc ", Style::default().fg(C_ACCENT)),
+                Span::styled("退出", Style::default().fg(C_SECONDARY)),
+            ]),
+            Line::from(""),
+        ];
+
+        f.render_widget(
+            Paragraph::new(help_text)
+                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                .alignment(Alignment::Center),
+            area,
+        );
+    }
+
+    /// Draw the game board
     fn draw_board(
         f: &mut Frame,
         area: Rect,
@@ -267,16 +306,10 @@ impl UI {
         let board_height = (BOARD_ROWS as u16) * config.cell_height + 2;
         let board_area = Self::centered_rect(board_width, board_height, area);
 
-        let block = if area.width > 30 {
-            Block::default()
-                .borders(BORDER_ALL)
-                .border_style(Style::default().fg(C_SECONDARY))
-                .title(Span::styled(" 棋盘 ", Style::default().fg(C_ACCENT)))
-        } else {
-            Block::default()
-                .borders(BORDER_ALL)
-                .border_style(Style::default().fg(C_SECONDARY))
-        };
+        let block = Block::default()
+            .borders(BORDER_ALL)
+            .border_style(Style::default().fg(C_SECONDARY))
+            .title(Span::styled(" 棋盘 Board ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)));
 
         f.render_widget(block, board_area);
 
@@ -291,6 +324,162 @@ impl UI {
             Self::draw_selection_highlight(f, inner, sel, config);
         }
         Self::draw_pieces(f, inner, game, config);
+    }
+
+    /// Draw mini info panel for compact layout
+    fn draw_mini_info(f: &mut Frame, area: Rect, game: &Game, _config: &LayoutConfig) {
+        let turn = match game.turn() {
+            Color::Red => "● 红方",
+            Color::Black => "● 黑方",
+        };
+        let turn_color = match game.turn() {
+            Color::Red => C_RED_PIECE,
+            Color::Black => C_BLACK_PIECE,
+        };
+
+        let check = if game.is_in_check() {
+            "将军!"
+        } else {
+            ""
+        };
+
+        let lines = vec![
+            Line::from(vec![
+                Span::styled(" 信息 Info ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("回合:", Style::default().fg(C_SECONDARY)),
+                Span::styled(turn, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("步数:", Style::default().fg(C_SECONDARY)),
+                Span::styled(format!(" {}", game.get_moves().len()), Style::default().fg(C_GOLD)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled(check, Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD)),
+            ]),
+        ];
+
+        f.render_widget(
+            Paragraph::new(lines)
+                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                .alignment(Alignment::Left),
+            area,
+        );
+    }
+
+    /// Draw the move history panel
+    fn draw_move_history(f: &mut Frame, area: Rect, game: &Game, _config: &LayoutConfig) {
+        let moves = game.get_notated_moves();
+        let mut move_lines: Vec<Line> = vec![
+            Line::from(vec![
+                Span::styled(" 着法记录 History ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(""),
+        ];
+
+        // Show recent moves with numbering
+        let recent_moves: Vec<(usize, String)> = moves
+            .iter()
+            .enumerate()
+            .rev()
+            .take(15)
+            .map(|(i, (piece, mv))| {
+                let notation = move_to_simple_notation(*piece, mv.from, mv.to);
+                (i + 1, notation)
+            })
+            .collect();
+
+        if recent_moves.is_empty() {
+            move_lines.push(Line::from(vec![
+                Span::styled("  暂无着法", Style::default().fg(C_GRID)),
+            ]));
+        } else {
+            for (num, notation) in recent_moves.into_iter().rev() {
+                let color = if num % 2 == 1 {
+                    C_RED_PIECE  // Red moves first (odd numbers)
+                } else {
+                    C_BLACK_PIECE
+                };
+                move_lines.push(Line::from(vec![
+                    Span::styled(format!("{:2}. ", num), Style::default().fg(C_SECONDARY)),
+                    Span::styled(notation, Style::default().fg(color)),
+                ]));
+            }
+        }
+
+        f.render_widget(
+            Paragraph::new(move_lines)
+                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                .alignment(Alignment::Left),
+            area,
+        );
+    }
+
+    /// Draw the game info panel
+    fn draw_game_info(f: &mut Frame, area: Rect, game: &Game, _config: &LayoutConfig) {
+        let turn = match game.turn() {
+            Color::Red => "● 红方",
+            Color::Black => "● 黑方",
+        };
+        let turn_color = match game.turn() {
+            Color::Red => C_RED_PIECE,
+            Color::Black => C_BLACK_PIECE,
+        };
+
+        let check_indicator = if game.is_in_check() {
+            "将军!"
+        } else {
+            "正常"
+        };
+
+        let (state_text, state_color) = match game.state() {
+            GameState::Playing => ("进行中", C_PRIMARY),
+            GameState::Checkmate(c) => {
+                if c == Color::Red {
+                    ("红胜!", C_RED_PIECE)
+                } else {
+                    ("黑胜!", C_BLACK_PIECE)
+                }
+            }
+            GameState::Stalemate => ("和棋", C_GOLD),
+        };
+
+        let lines = vec![
+            Line::from(vec![
+                Span::styled(" 游戏信息 Info ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("当前回合:", Style::default().fg(C_SECONDARY)),
+                Span::styled(turn, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("总步数:", Style::default().fg(C_SECONDARY)),
+                Span::styled(format!(" {}", game.get_moves().len()), Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("将军状态:", Style::default().fg(C_SECONDARY)),
+                Span::styled(check_indicator, Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("游戏状态:", Style::default().fg(C_SECONDARY)),
+                Span::styled(state_text, Style::default().fg(state_color).add_modifier(Modifier::BOLD)),
+            ]),
+        ];
+
+        f.render_widget(
+            Paragraph::new(lines)
+                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                .alignment(Alignment::Left),
+            area,
+        );
     }
 
     fn draw_grid(f: &mut Frame, area: Rect, config: &LayoutConfig) {
@@ -357,7 +546,6 @@ impl UI {
     }
 
     fn draw_river(f: &mut Frame, area: Rect, config: &LayoutConfig) {
-        // Position river between row 4 (y=8) and row 5 (y=10), at y=9
         let river_y = area.y + config.cell_height * 5 - 1;
 
         let chu = " 楚河";
@@ -391,7 +579,7 @@ impl UI {
             };
 
             let piece_text = piece.to_string();
-            let piece_width = config.cell_width.min(2);
+            let piece_width = config.cell_width.min(3);
 
             f.render_widget(
                 Paragraph::new(piece_text)
@@ -406,7 +594,7 @@ impl UI {
         let (px, py) = config.cell_pos(cursor.x, cursor.y);
         let px = inner.x + px;
         let py = inner.y + py;
-        let w = config.cell_width.min(2);
+        let w = config.cell_width.min(3);
 
         f.render_widget(
             Block::default().borders(BORDER_ALL).border_style(
@@ -420,9 +608,8 @@ impl UI {
         let (px, py) = config.cell_pos(selected.x, selected.y);
         let px = inner.x + px;
         let py = inner.y + py;
-        let w = config.cell_width.min(2);
+        let w = config.cell_width.min(3);
 
-        // Use background color + border for better visibility
         f.render_widget(
             Paragraph::new("")
                 .block(Block::default().borders(BORDER_ALL).border_style(
@@ -433,94 +620,12 @@ impl UI {
         );
     }
 
-    fn draw_status(f: &mut Frame, area: Rect, game: &Game, config: &LayoutConfig) {
-        // Get move info once to avoid borrowing issues
-        let moves = game.get_moves();
-        let last_move_str = if moves.is_empty() {
-            " 无着法".to_string()
-        } else {
-            let m = &moves[moves.len() - 1];
-            format!(" ({},{})→({},{})", m.from.x, m.from.y, m.to.x, m.to.y)
-        };
-
-        if !config.show_full_status || area.height < 2 {
-            let turn = match game.turn() {
-                Color::Red => "红",
-                Color::Black => "黑",
-            };
-            let text = format!("{}{} 方向键 Enter q:Quit", turn, last_move_str);
-
-            f.render_widget(
-                Paragraph::new(text)
-                    .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
-                    .alignment(Alignment::Center),
-                area,
-            );
-            return;
-        }
-
-        let turn = match game.turn() {
-            Color::Red => "●红",
-            Color::Black => "●黑",
-        };
-        let turn_color = match game.turn() {
-            Color::Red => C_RED_PIECE,
-            Color::Black => C_SECONDARY,
-        };
-
-        let help = "Arrows:Move Enter:Select q:Quit r:Restart";
-
-        let spans = vec![
-            Span::styled("┈", Style::default().fg(C_SECONDARY)),
-            Span::styled(turn, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
-            Span::styled(last_move_str, Style::default().fg(C_GOLD)),
-            Span::styled(" | ", Style::default().fg(C_GRID)),
-            Span::styled(help, Style::default().fg(C_ACCENT)),
-            Span::styled("┈", Style::default().fg(C_SECONDARY)),
-        ];
-
-        f.render_widget(
-            Paragraph::new(Line::from(spans))
-                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
-                .alignment(Alignment::Center),
-            area,
-        );
-    }
-
-    fn draw_move_history(f: &mut Frame, area: Rect, game: &Game, _config: &LayoutConfig) {
-        let moves = game.get_notated_moves();
-        let recent_moves: Vec<String> = moves
-            .iter()
-            .rev()
-            .take(8) // Show last 8 moves
-            .map(|(piece, mv)| move_to_simple_notation(*piece, mv.from, mv.to))
-            .collect();
-
-        let history_text = if recent_moves.is_empty() {
-            " 无着法".to_string()
-        } else {
-            recent_moves.join("\n")
-        };
-
-        f.render_widget(
-            Paragraph::new(history_text)
-                .block(
-                    Block::default()
-                        .title(" 着法记录 Move History ")
-                        .borders(BORDER_ALL)
-                        .border_style(Style::default().fg(C_SECONDARY)),
-                )
-                .alignment(Alignment::Left),
-            area,
-        );
-    }
-
     pub fn draw_game_over_popup(f: &mut Frame, area: Rect, state: GameState, config: &LayoutConfig) {
         let popup_area = Self::centered_rect(config.popup_width, config.popup_height, area);
 
         let (text, color) = match state {
             GameState::Checkmate(Color::Red) => ("★ 红方胜利!\nRed Wins!", C_RED_PIECE),
-            GameState::Checkmate(Color::Black) => ("★ 黑方胜利!\nBlack Wins!", C_SECONDARY),
+            GameState::Checkmate(Color::Black) => ("★ 黑方胜利!\nBlack Wins!", C_BLACK_PIECE),
             GameState::Stalemate => ("♦ 和棋!\nDraw", C_GOLD),
             GameState::Playing => return,
         };
@@ -529,11 +634,12 @@ impl UI {
             Line::from(""),
             Line::from(vec![Span::styled(text, Style::default().fg(color).add_modifier(Modifier::BOLD))]),
             Line::from(""),
+            Line::from(""),
             Line::from(vec![
-                Span::styled("q", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
-                Span::raw(":Quit  "),
-                Span::styled("r", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
-                Span::raw(":Restart"),
+                Span::styled(" q ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+                Span::raw(": 退出游戏    "),
+                Span::styled(" r ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+                Span::raw(": 重新开始"),
             ]),
             Line::from(""),
         ];
