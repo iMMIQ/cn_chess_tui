@@ -1,5 +1,5 @@
 use crate::game::{Game, GameState};
-use crate::types::{Color, Position};
+use crate::types::{Color, Position, move_to_simple_notation};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Color as RColor, Modifier, Style},
@@ -31,6 +31,7 @@ const C_BLACK_PIECE: RColor = RColor::Gray;
 // Highlight colors
 const C_CURSOR: RColor = RColor::Green;
 const C_SELECTION: RColor = RColor::Yellow;
+const C_SELECTION_BG: RColor = RColor::DarkGray;
 const C_CHECK: RColor = RColor::LightRed;
 
 // Border styles
@@ -57,7 +58,7 @@ impl LayoutConfig {
 
         // Calculate available height after accounting for header and status
         let min_board_height = BOARD_ROWS as u16 * 2; // At least 20 for the board
-        let available_for_header_status = height.saturating_sub(min_board_height);
+        let _available_for_header_status = height.saturating_sub(min_board_height);
 
         let is_small = width < MIN_WIDTH || height < MIN_HEIGHT;
         let is_very_small = width < 30 || height < 22;
@@ -65,9 +66,7 @@ impl LayoutConfig {
 
         let header_height = if is_tiny {
             1
-        } else if is_very_small {
-            2
-        } else if is_small {
+        } else if is_very_small || is_small {
             2
         } else {
             3
@@ -87,8 +86,8 @@ impl LayoutConfig {
         let show_full_status = !is_very_small;
         let show_river_text = width >= 45;
 
-        let popup_width = (width * 60 / 100).min(40).max(25);
-        let popup_height = (height * 40 / 100).min(12).max(8);
+        let popup_width = (width * 60 / 100).clamp(25, 40);
+        let popup_height = (height * 40 / 100).clamp(8, 12);
 
         LayoutConfig {
             header_height,
@@ -147,7 +146,20 @@ impl UI {
         };
 
         Self::draw_header(f, chunks[0], game, &config);
-        Self::draw_board(f, chunks[1], game, cursor, selection, &config);
+
+        // For wide terminals, show move history panel on the right
+        if size.width >= 80 {
+            let board_chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Min(50), Constraint::Length(26)])
+                .split(chunks[1]);
+
+            Self::draw_board(f, board_chunks[0], game, cursor, selection, &config);
+            Self::draw_move_history(f, board_chunks[1], game, &config);
+        } else {
+            Self::draw_board(f, chunks[1], game, cursor, selection, &config);
+        }
+
         if show_status && chunks.len() > 2 {
             Self::draw_status(f, chunks[2], game, &config);
         }
@@ -345,7 +357,8 @@ impl UI {
     }
 
     fn draw_river(f: &mut Frame, area: Rect, config: &LayoutConfig) {
-        let river_y = area.y + config.cell_height * 5;
+        // Position river between row 4 (y=8) and row 5 (y=10), at y=9
+        let river_y = area.y + config.cell_height * 5 - 1;
 
         let chu = " 楚河";
         let han = "汉界";
@@ -409,10 +422,13 @@ impl UI {
         let py = inner.y + py;
         let w = config.cell_width.min(2);
 
+        // Use background color + border for better visibility
         f.render_widget(
-            Block::default().borders(BORDER_ALL).border_style(
-                Style::default().fg(C_SELECTION).add_modifier(Modifier::BOLD)
-            ),
+            Paragraph::new("")
+                .block(Block::default().borders(BORDER_ALL).border_style(
+                    Style::default().fg(C_SELECTION).add_modifier(Modifier::BOLD)
+                ))
+                .style(Style::default().bg(C_SELECTION_BG)),
             Rect { x: px, y: py, width: w, height: 1 },
         );
     }
@@ -467,6 +483,34 @@ impl UI {
             Paragraph::new(Line::from(spans))
                 .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
                 .alignment(Alignment::Center),
+            area,
+        );
+    }
+
+    fn draw_move_history(f: &mut Frame, area: Rect, game: &Game, _config: &LayoutConfig) {
+        let moves = game.get_notated_moves();
+        let recent_moves: Vec<String> = moves
+            .iter()
+            .rev()
+            .take(8) // Show last 8 moves
+            .map(|(piece, mv)| move_to_simple_notation(*piece, mv.from, mv.to))
+            .collect();
+
+        let history_text = if recent_moves.is_empty() {
+            " 无着法".to_string()
+        } else {
+            recent_moves.join("\n")
+        };
+
+        f.render_widget(
+            Paragraph::new(history_text)
+                .block(
+                    Block::default()
+                        .title(" 着法记录 Move History ")
+                        .borders(BORDER_ALL)
+                        .border_style(Style::default().fg(C_SECONDARY)),
+                )
+                .alignment(Alignment::Left),
             area,
         );
     }

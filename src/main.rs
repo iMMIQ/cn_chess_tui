@@ -37,10 +37,7 @@ fn print_usage() {
 
 fn print_fen_position(fen: &str) -> Result<(), FenError> {
     let game = Game::from_fen(fen)?;
-    println!("FEN: {}", game.to_fen());
-    println!("Turn: {}", game.turn());
-    println!();
-    fen_print::print_board_ascii(game.board());
+    fen_print::print_game_state(&game);
     Ok(())
 }
 

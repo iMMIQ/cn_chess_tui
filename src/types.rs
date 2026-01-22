@@ -75,6 +75,7 @@ pub struct Position {
 }
 
 impl Position {
+    #[allow(dead_code)]
     pub fn new(x: usize, y: usize) -> Option<Self> {
         if x < 9 && y < 10 {
             Some(Self { x, y })
@@ -119,4 +120,10 @@ impl Position {
     pub fn chebyshev_distance(&self, other: Position) -> usize {
         self.file_distance(other).max(self.rank_distance(other))
     }
+}
+
+/// Convert a move to simple coordinate notation
+/// Format: "车(1,0)→(1,2)" means Chariot moves from (1,0) to (1,2)
+pub fn move_to_simple_notation(piece: Piece, from: Position, to: Position) -> String {
+    format!("{}({},{})→({},{})", piece, from.x, from.y, to.x, to.y)
 }

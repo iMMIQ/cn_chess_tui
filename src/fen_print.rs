@@ -1,7 +1,8 @@
 //! Terminal position printing without entering game loop
 
 use crate::board::Board;
-use crate::types::Position;
+use crate::types::{Position, move_to_simple_notation};
+use crate::game::Game;
 
 /// Print a board position to stdout using ASCII art
 ///
@@ -38,6 +39,34 @@ pub fn print_board_ascii(board: &Board) {
     }
 
     println!("└─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘");
+}
+
+/// Print complete game state with FEN, turn, and move history
+///
+/// This function provides a comprehensive view of the game state
+/// useful for debugging, testing, and FEN preview
+pub fn print_game_state(game: &Game) {
+    println!("FEN: {}", game.to_fen());
+    println!("Turn: {} | State: {}", game.turn(), game.state());
+
+    if game.is_in_check() {
+        println!("★ CHECK!");
+    }
+
+    println!();
+    print_board_ascii(game.board());
+
+    // Print move history
+    let moves = game.get_notated_moves();
+    if !moves.is_empty() {
+        println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        println!("            着法记录 Move History");
+        println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        for (i, (piece, mv)) in moves.iter().enumerate() {
+            let notation = move_to_simple_notation(*piece, mv.from, mv.to);
+            println!("  {:2}. {}", i + 1, notation);
+        }
+    }
 }
 
 #[cfg(test)]

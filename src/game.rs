@@ -58,6 +58,7 @@ pub enum MoveError {
     NoPieceAtPosition,
     WrongTurn(Color),
     InvalidMove,
+    #[allow(dead_code)]
     WouldLeaveInCheck,
     GameOver(GameResult),
 }
@@ -89,6 +90,7 @@ pub struct Game {
 #[derive(Debug, Clone)]
 struct MoveRecord {
     mv: Move,
+    piece: crate::types::Piece,
     captured: Option<crate::types::Piece>,
 }
 
@@ -126,6 +128,11 @@ impl Game {
     /// Get a reference to the move history as a Vec
     pub fn get_moves(&self) -> Vec<Move> {
         self.move_history.iter().map(|r| r.mv).collect()
+    }
+
+    /// Get move history with piece information for notation display
+    pub fn get_notated_moves(&self) -> Vec<(crate::types::Piece, Move)> {
+        self.move_history.iter().map(|r| (r.piece, r.mv)).collect()
     }
 
     /// Make a move on the board
@@ -166,6 +173,7 @@ impl Game {
         // Record the move in history
         self.move_history.push(MoveRecord {
             mv: Move::new(from, to),
+            piece,
             captured,
         });
 
@@ -219,6 +227,7 @@ impl Game {
     }
 
     /// Check if a specific color is in check
+    #[allow(dead_code)]
     pub fn is_color_in_check(&self, color: Color) -> bool {
         self.board.is_in_check(color)
     }
@@ -267,6 +276,7 @@ impl Game {
     }
 
     /// Get a mutable reference to the board (use with caution)
+    #[allow(dead_code)]
     pub fn board_mut(&mut self) -> &mut Board {
         &mut self.board
     }
