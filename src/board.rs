@@ -73,10 +73,12 @@ impl Board {
         self.pieces.get(&pos)
     }
 
+    #[allow(dead_code)]
     pub fn get_mut(&mut self, pos: Position) -> Option<&mut Piece> {
         self.pieces.get_mut(&pos)
     }
 
+    #[allow(dead_code)]
     pub fn piece_at(&self, x: usize, y: usize) -> Option<&Piece> {
         self.get(Position::from_xy(x, y))
     }
@@ -260,10 +262,10 @@ impl Board {
             (from.x as isize, from.y as isize - dy.signum())
         };
 
-        if block_x >= 0 && block_x < 9 && block_y >= 0 && block_y < 10 {
-            if !self.is_empty_xy(block_x as usize, block_y as usize) {
-                return false;
-            }
+        if (0..9).contains(&block_x) && (0..10).contains(&block_y)
+            && !self.is_empty_xy(block_x as usize, block_y as usize)
+        {
+            return false;
         }
 
         true

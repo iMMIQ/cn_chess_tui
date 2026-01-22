@@ -15,8 +15,10 @@ use std::collections::HashMap;
 
 /// Errors that can occur during FEN parsing
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)]
 pub enum FenError {
     InvalidFormat,
+    #[allow(dead_code)]
     InvalidBoardSection,
     InvalidPiece(char),
     InvalidRankCount,
@@ -155,10 +157,10 @@ pub fn fen_to_board(fen: &str) -> Result<(Board, Color), FenError> {
     // We don't need to validate them
 
     // Parse move counts (optional validation)
-    if let Err(_) = parts[4].parse::<u32>() {
+    if parts[4].parse::<u32>().is_err() {
         return Err(FenError::InvalidMoveCount);
     }
-    if let Err(_) = parts[5].parse::<u32>() {
+    if parts[5].parse::<u32>().is_err() {
         return Err(FenError::InvalidMoveCount);
     }
 

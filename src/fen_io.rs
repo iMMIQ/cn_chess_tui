@@ -29,6 +29,7 @@ pub fn read_fen_file<P: AsRef<Path>>(path: P) -> Result<String, std::io::Error> 
 ///
 /// # Errors
 /// Returns io::Error if the file cannot be written
+#[allow(dead_code)]
 pub fn write_fen_file<P: AsRef<Path>>(path: P, fen: &str) -> Result<(), std::io::Error> {
     fs::write(path, fen)
 }
@@ -43,6 +44,7 @@ pub fn write_fen_file<P: AsRef<Path>>(path: P, fen: &str) -> Result<(), std::io:
 ///
 /// # Errors
 /// Returns io::Error for file errors, or FenError for parsing errors
+#[allow(dead_code)]
 pub fn load_fen_file<P: AsRef<Path>>(path: P) -> Result<(crate::board::Board, crate::types::Color), Box<dyn std::error::Error>> {
     let fen = read_fen_file(path)?;
     let (board, turn) = crate::fen::fen_to_board(&fen)?;

@@ -117,6 +117,57 @@ Tests cover:
 - Soldier movement (forward, sideways, backward restrictions)
 - Flying general rule
 
+## FEN Format Support
+
+This application supports the FEN (Forsyth-Edwards Notation) format for importing and exporting board positions.
+
+### FEN Format
+
+FEN strings represent a board position in a compact text format. Example:
+
+```
+rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1
+```
+
+**Piece mapping:**
+- `R/r` = Chariot (车)
+- `N/n` = Horse (马)
+- `B/b` = Elephant (相/象)
+- `A/a` = Advisor (仕/士)
+- `K/k` = General (帅/将)
+- `C/c` = Cannon (炮)
+- `P/p` = Soldier (兵/卒)
+
+Uppercase = Red pieces, Lowercase = Black pieces
+
+### Usage
+
+#### Print a FEN position to terminal
+
+```bash
+cn_chess_tui --print 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1'
+```
+
+#### Load game from FEN string
+
+```bash
+cn_chess_tui --fen 'rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1'
+```
+
+#### Load game from .fen file
+
+```bash
+cn_chess_tui --file position.fen
+```
+
+### FEN File Format
+
+FEN files are simple text files containing a single FEN string:
+
+```
+rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1
+```
+
 ## Future Features
 
 Potential enhancements for future versions:
