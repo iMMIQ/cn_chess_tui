@@ -290,3 +290,20 @@ fn test_fen_with_moves_roundtrip() {
     assert_eq!(game.turn(), parsed_game.turn());
     assert_eq!(game.get_moves().len(), parsed_game.get_moves().len());
 }
+
+#[test]
+fn test_game_from_fen_with_moves_method() {
+    let input = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves a6a5";
+    let game = Game::from_fen_with_moves(input).unwrap();
+    assert_eq!(game.turn(), cn_chess_tui::types::Color::Black);
+}
+
+#[test]
+fn test_game_to_fen_with_moves_method() {
+    let mut game = Game::new();
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap();
+
+    let output = game.to_fen_with_moves();
+    assert!(output.contains("moves"));
+    assert!(output.contains("a6a5"));
+}

@@ -344,6 +344,13 @@ impl Game {
         })
     }
 
+    /// Create a game from FEN with moves format
+    ///
+    /// Accepts both UCCI format (`position fen <fen> moves ...`) and simplified format
+    pub fn from_fen_with_moves(fen_with_moves: &str) -> Result<Self, FenError> {
+        crate::fen::fen_with_moves_to_game(fen_with_moves)
+    }
+
     /// Export the current game state to FEN format
     pub fn to_fen(&self) -> String {
         // Calculate full move number from history
@@ -351,6 +358,13 @@ impl Game {
         let full_move_count = (self.move_history.len() / 2) + 1;
 
         crate::fen::board_to_fen(&self.board, self.turn, 0, full_move_count as u32)
+    }
+
+    /// Export the current game state to FEN with moves format
+    ///
+    /// Exports from the last capture position (or initial if no captures)
+    pub fn to_fen_with_moves(&self) -> String {
+        crate::fen::game_to_fen_with_moves(self)
     }
 
     /// Export the game to PGN format
