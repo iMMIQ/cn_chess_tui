@@ -1,11 +1,47 @@
 //! FEN (Forsyth-Edwards Notation) format support for Chinese Chess
 //!
-//! FEN format: `board_setup turn - - half_move_count full_move_count`
+//! This module supports both basic FEN format and FEN with moves history.
 //!
-//! Example initial position:
-//! `rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1`
+//! # Basic FEN Format
 //!
-//! Piece mapping:
+//! `board_setup turn - - half_move_count full_move_count`
+//!
+//! Example:
+//! ```text
+//! rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1
+//! ```
+//!
+//! # FEN with Moves Format
+//!
+//! Used in UCCI protocol to represent positions with move history:
+//! ```text
+//! position fen <fen_string> moves <move1> <move2> ...
+//! ```
+//!
+//! Or simplified:
+//! ```text
+//! <fen_string> moves <move1> <move2> ...
+//! ```
+//!
+//! The FEN represents the position after the last capture, and moves contains
+//! all subsequent moves. This enables engines to detect repetition and enforce
+//! move-count rules.
+//!
+//! # Example
+//!
+//! ```rust
+//! use cn_chess_tui::{Game, fen};
+//!
+//! // Parse FEN with moves
+//! let game = Game::from_fen_with_moves(
+//!     "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves a6a5"
+//! ).unwrap();
+//!
+//! // Export to FEN with moves
+//! let fen_with_moves = game.to_fen_with_moves();
+//! ```
+//!
+//! Piece Mapping:
 //! - Upper case: Red (R=车, N=马, B=相/象, A=仕/士, K=帅, C=炮, P=兵)
 //! - Lower case: Black (r=车, n=马, b=相/象, a=仕/士, k=将, c=炮, p=卒)
 
@@ -252,6 +288,7 @@ pub fn board_to_fen(
 /// 2. Simplified: `<fen_string> moves <move1> <move2> ...`
 ///
 /// Moves are in ICCS format (e.g., "b2c5", "h3e3")
+#[allow(dead_code)]
 pub fn fen_with_moves_to_game(input: &str) -> Result<crate::game::Game, FenError> {
     // Remove "position" prefix if present
     let input = input.strip_prefix("position ").unwrap_or(input);
@@ -308,19 +345,19 @@ pub fn fen_with_moves_to_game(input: &str) -> Result<crate::game::Game, FenError
 ///
 /// The FEN represents the position after the last capture (or initial if no captures),
 /// and moves contains all subsequent moves.
+#[allow(dead_code)]
 pub fn game_to_fen_with_moves(game: &crate::game::Game) -> String {
     use crate::types::Color;
 
     // Find the last capture in move history
     let capture_history = game.get_capture_history();
-    let last_capture_index = capture_history.iter()
-        .rposition(|&is_capture| is_capture);
+    let last_capture_index = capture_history.iter().rposition(|&is_capture| is_capture);
 
     let (base_fen, remaining_moves) = match last_capture_index {
         Some(idx) => {
             // Reconstruct board at last capture (after that move)
             let (board, turn) = game.reconstruct_board_at_move(idx + 1);
-            let fen = board_to_fen(&board, turn, 0, ((idx + 1) / 2 + 1) as u32);
+            let fen = board_to_fen(&board, turn, 0, (idx + 1).div_ceil(2) as u32);
 
             // Get remaining moves (after the last capture)
             let all_moves = game.get_moves_with_iccs();
@@ -330,12 +367,7 @@ pub fn game_to_fen_with_moves(game: &crate::game::Game) -> String {
         }
         None => {
             // No captures, use initial position
-            let fen = board_to_fen(
-                &Board::new(),
-                Color::Red,
-                0,
-                1
-            );
+            let fen = board_to_fen(&Board::new(), Color::Red, 0, 1);
             let all_moves = game.get_moves_with_iccs();
 
             (fen, all_moves)

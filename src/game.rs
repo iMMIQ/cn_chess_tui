@@ -347,6 +347,7 @@ impl Game {
     /// Create a game from FEN with moves format
     ///
     /// Accepts both UCCI format (`position fen <fen> moves ...`) and simplified format
+    #[allow(dead_code)]
     pub fn from_fen_with_moves(fen_with_moves: &str) -> Result<Self, FenError> {
         crate::fen::fen_with_moves_to_game(fen_with_moves)
     }
@@ -363,6 +364,7 @@ impl Game {
     /// Export the current game state to FEN with moves format
     ///
     /// Exports from the last capture position (or initial if no captures)
+    #[allow(dead_code)]
     pub fn to_fen_with_moves(&self) -> String {
         crate::fen::game_to_fen_with_moves(self)
     }
@@ -417,8 +419,12 @@ impl Game {
     /// Get information about whether each move in history was a capture
     ///
     /// Returns a Vec of booleans, where true = capture
+    #[allow(dead_code)]
     pub fn get_capture_history(&self) -> Vec<bool> {
-        self.move_history.iter().map(|r| r.captured.is_some()).collect()
+        self.move_history
+            .iter()
+            .map(|r| r.captured.is_some())
+            .collect()
     }
 
     /// Reconstruct board state at a specific point in move history
@@ -428,6 +434,7 @@ impl Game {
     ///
     /// # Returns
     /// (Board, Color) tuple representing the state after that many moves
+    #[allow(dead_code)]
     pub fn reconstruct_board_at_move(&self, move_index: usize) -> (Board, Color) {
         // Start from initial board
         let mut board = Board::new();
