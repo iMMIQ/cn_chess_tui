@@ -264,11 +264,7 @@ pub fn fen_with_moves_to_game(input: &str) -> Result<crate::game::Game, FenError
     }
 
     // Find "fen" keyword and extract FEN string
-    let fen_start = if parts[0] == "fen" {
-        1
-    } else {
-        0
-    };
+    let fen_start = if parts[0] == "fen" { 1 } else { 0 };
 
     // FEN string has 6 parts: board turn - - half_move full_move
     if parts.len() < fen_start + 6 {
@@ -440,7 +436,8 @@ mod tests {
     #[test]
     fn test_parse_fen_with_moves_simple() {
         // Start position, one move (soldier from a6 to a5)
-        let input = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves a6a5";
+        let input =
+            "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves a6a5";
         let result = fen_with_moves_to_game(input);
         assert!(result.is_ok(), "Should parse FEN with moves");
 
@@ -460,7 +457,8 @@ mod tests {
 
     #[test]
     fn test_parse_fen_with_moves_invalid_iccs() {
-        let input = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves invalid";
+        let input =
+            "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves invalid";
         let result = fen_with_moves_to_game(input);
         assert!(matches!(result, Err(FenError::InvalidMoveInHistory(_))));
     }

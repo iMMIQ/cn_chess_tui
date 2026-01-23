@@ -164,3 +164,64 @@ fn test_fen_rank_count_validation() {
 
     assert!(matches!(result, Err(FenError::InvalidRankCount)));
 }
+
+#[test]
+fn test_reconstruct_board_at_move() {
+    let mut game = Game::new();
+
+    // Make a few moves
+    // Red soldier at (0, 6) moves forward
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5))
+        .unwrap();
+    // Black soldier at (0, 3) moves forward
+    game.make_move(Position::from_xy(0, 3), Position::from_xy(0, 4))
+        .unwrap();
+
+    // Reconstruct at move 1 (after first move)
+    let (board, turn) = game.reconstruct_board_at_move(1);
+    assert_eq!(turn, Color::Black);
+
+    // Board should have piece at the destination
+    assert!(board.get(Position::from_xy(0, 5)).is_some());
+
+    // Reconstruct at move 2 (after second move)
+    let (board2, turn2) = game.reconstruct_board_at_move(2);
+    assert_eq!(turn2, Color::Red);
+    assert!(board2.get(Position::from_xy(0, 4)).is_some());
+}
+
+#[test]
+fn test_reconstruct_board_with_capture() {
+    // This test verifies that the bug fix works correctly
+    // The bug was placing captured pieces back on their squares
+    // We verify that after reconstruction, destination squares have only ONE piece
+
+    let mut game = Game::new();
+
+    // Make simple forward moves
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5))
+        .unwrap();
+    game.make_move(Position::from_xy(0, 3), Position::from_xy(0, 4))
+        .unwrap();
+    game.make_move(Position::from_xy(0, 5), Position::from_xy(0, 4))
+        .unwrap(); // capture!
+
+    // Reconstruct after capture
+    let (board, turn) = game.reconstruct_board_at_move(3);
+
+    // The destination should have ONE piece (the capturing Red soldier)
+    let piece = board.get(Position::from_xy(0, 4));
+    assert!(piece.is_some(), "Destination square should have a piece");
+
+    // Should be Red's piece that captured
+    assert_eq!(piece.unwrap().color, Color::Red);
+
+    // The starting position should be empty
+    assert!(
+        board.get(Position::from_xy(0, 5)).is_none(),
+        "Starting square should be empty after move"
+    );
+
+    // Verify turn is correct
+    assert_eq!(turn, Color::Black);
+}

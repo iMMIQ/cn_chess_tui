@@ -399,6 +399,37 @@ impl Game {
         pgn_game.result = result;
         pgn_game
     }
+
+    /// Reconstruct board state at a specific point in move history
+    ///
+    /// # Arguments
+    /// * `move_index` - Index in move_history (0 = before any moves, 1 = after first move, etc.)
+    ///
+    /// # Returns
+    /// (Board, Color) tuple representing the state after that many moves
+    pub fn reconstruct_board_at_move(&self, move_index: usize) -> (Board, Color) {
+        // Start from initial board
+        let mut board = Board::new();
+        let mut turn = Color::Red;
+
+        // Apply moves up to move_index
+        for (i, record) in self.move_history.iter().enumerate() {
+            if i >= move_index {
+                break;
+            }
+
+            // Apply the move
+            board.move_piece(record.mv.from, record.mv.to);
+
+            // Switch turn
+            turn = match turn {
+                Color::Red => Color::Black,
+                Color::Black => Color::Red,
+            };
+        }
+
+        (board, turn)
+    }
 }
 
 impl Default for Game {
