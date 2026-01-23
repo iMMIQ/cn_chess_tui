@@ -62,9 +62,9 @@ mod tests {
         let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
 
         let temp_file = NamedTempFile::new().unwrap();
-        write_fen_file(&temp_file.path(), fen).unwrap();
+        write_fen_file(temp_file.path(), fen).unwrap();
 
-        let read_fen = read_fen_file(&temp_file.path()).unwrap();
+        let read_fen = read_fen_file(temp_file.path()).unwrap();
         assert_eq!(read_fen, fen);
     }
 
@@ -78,7 +78,7 @@ mod tests {
         let mut temp_file = NamedTempFile::new().unwrap();
         temp_file.write_all(fen.as_bytes()).unwrap();
 
-        let read_fen = read_fen_file(&temp_file.path()).unwrap();
+        let read_fen = read_fen_file(temp_file.path()).unwrap();
         assert_eq!(read_fen, fen.trim());
     }
 }

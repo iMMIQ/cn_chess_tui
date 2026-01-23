@@ -35,7 +35,7 @@ const BORDER_ALL: Borders = Borders::ALL;
 
 /// Layout zone types for the new UI
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum LayoutZone {
+pub enum LayoutZone {
     /// Compact layout - board only with minimal info
     Compact,
     /// Standard layout - board + history
