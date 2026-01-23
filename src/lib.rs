@@ -1,4 +1,5 @@
 pub mod board;
+pub mod config;
 pub mod fen;
 pub mod fen_io;
 pub mod fen_print;

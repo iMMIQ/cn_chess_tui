@@ -33,14 +33,16 @@ use std::time::{Duration, Instant};
 
 fn print_usage() {
     println!("Chinese Chess TUI - Usage:");
-    println!("  cn_chess_tui               Start a new game");
-    println!("  cn_chess_tui --print <fen> Print FEN position to terminal and exit");
-    println!("  cn_chess_tui --fen <fen>   Load and play from FEN string");
-    println!("  cn_chess_tui --file <path> Load and play from .fen file");
-    println!("  cn_chess_tui --pgn <path>  Load and play from .pgn file");
-    println!("  cn_chess_tui --export-pgn  Export current game to PGN (not yet implemented)");
-    println!("  cn_chess_tui --export-xml  Export current game to XML (not yet implemented)");
-    println!("  cn_chess_tui --help        Show this help message");
+    println!("  cn_chess_tui                    Start new game (PvP)");
+    println!("  cn_chess_tui --engine <path>    Start with AI engine");
+    println!("  cn_chess_tui --ai <color>       Set AI color (red/black/off)");
+    println!("  cn_chess_tui --print <fen>      Print FEN position");
+    println!("  cn_chess_tui --fen <fen>        Load from FEN");
+    println!("  cn_chess_tui --file <path>      Load from file");
+    println!("  cn_chess_tui --pgn <path>       Load from PGN");
+    println!("  cn_chess_tui --export-pgn       Export current game to PGN (not yet implemented)");
+    println!("  cn_chess_tui --export-xml       Export current game to XML (not yet implemented)");
+    println!("  cn_chess_tui --help             Show this help");
 }
 
 fn print_fen_position(fen: &str) -> Result<(), FenError> {
@@ -570,6 +572,29 @@ fn main() {
                     eprintln!("Error loading PGN file: {}", e);
                     process::exit(1);
                 }
+            }
+        }
+        "--engine" => {
+            if args.len() < 3 {
+                eprintln!("Error: --engine requires a path");
+                process::exit(1);
+            }
+            let engine_path = &args[2];
+            let mut app = App::new();
+
+            match app.controller.init_engine(engine_path) {
+                Ok(_) => {
+                    app.show_message("Engine loaded".to_string());
+                }
+                Err(e) => {
+                    eprintln!("Error loading engine: {}", e);
+                    process::exit(1);
+                }
+            }
+
+            if let Err(e) = run_game(&mut app) {
+                eprintln!("Error running game: {}", e);
+                process::exit(1);
             }
         }
         _ => {
