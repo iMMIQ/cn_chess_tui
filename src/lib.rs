@@ -3,6 +3,7 @@ pub mod fen;
 pub mod fen_io;
 pub mod fen_print;
 pub mod game;
+pub mod notation;
 pub mod types;
 pub mod ui;
 
@@ -15,3 +16,6 @@ pub use types::{Color, Piece, PieceType, Position, move_to_simple_notation};
 
 // Re-export UI for testing
 pub use ui::UI;
+
+// Re-export notation types
+pub use notation::iccs::{position_to_iccs, iccs_to_position, move_to_iccs, iccs_to_move};
