@@ -10,6 +10,8 @@ clap = { version = "4.0", features = ["derive"], optional = true }
 rustyline = { version = "14.0", optional = true }
 toml = "0.8"
 dirs = "5.0"
+serde = { version = "1.0", features = ["derive"] }
+quick-xml = { version = "0.37", features = ["serialize"] }
 
 [dev-dependencies]
 insta = "1.46.1"
