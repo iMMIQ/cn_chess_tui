@@ -23,7 +23,7 @@
 //! ```
 
 use crate::pgn::{PgnGame, PgnGameResult};
-use quick_xml::events::{Event, BytesStart, BytesEnd, BytesText, BytesDecl};
+use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::reader::Reader;
 use quick_xml::writer::Writer;
 use std::fs::File;
@@ -154,53 +154,52 @@ pub fn xml_to_pgn(xml: &str) -> Option<PgnGame> {
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(ref e)) => {
-                match e.name().as_ref() {
-                    b"tags" => in_tags = true,
-                    b"moves" => in_moves = true,
-                    b"move" => {
+            Ok(Event::Start(ref e)) => match e.name().as_ref() {
+                b"tags" => in_tags = true,
+                b"moves" => in_moves = true,
+                b"move" => {
+                    current_content.clear();
+                }
+                b"result" => {
+                    current_content.clear();
+                    in_result = true;
+                }
+                _ => {
+                    if in_tags {
+                        current_tag_name =
+                            Some(std::str::from_utf8(e.name().as_ref()).ok()?.to_string());
                         current_content.clear();
-                    }
-                    b"result" => {
-                        current_content.clear();
-                        in_result = true;
-                    }
-                    _ => {
-                        if in_tags {
-                            current_tag_name = Some(std::str::from_utf8(e.name().as_ref()).ok()?.to_string());
-                            current_content.clear();
-                        }
                     }
                 }
-            }
-            Ok(Event::End(ref e)) => {
-                match e.name().as_ref() {
-                    b"tags" => in_tags = false,
-                    b"moves" => in_moves = false,
-                    b"move" => {
-                        if in_moves {
-                            game.add_move(current_content.trim());
-                        }
-                        current_content.clear();
+            },
+            Ok(Event::End(ref e)) => match e.name().as_ref() {
+                b"tags" => in_tags = false,
+                b"moves" => in_moves = false,
+                b"move" => {
+                    if in_moves {
+                        game.add_move(current_content.trim());
                     }
-                    b"result" => {
-                        game.result = PgnGameResult::parse(current_content.trim())
-                            .unwrap_or(PgnGameResult::Unknown);
-                        current_content.clear();
-                        in_result = false;
-                    }
-                    b"pgn" => break,
-                    _ => {
-                        if in_tags {
-                            if let (Some(tag_name), false) = (&current_tag_name, current_content.is_empty()) {
-                                game.set_tag(tag_name.clone(), current_content.trim().to_string());
-                            }
-                            current_tag_name = None;
-                            current_content.clear();
+                    current_content.clear();
+                }
+                b"result" => {
+                    game.result = PgnGameResult::parse(current_content.trim())
+                        .unwrap_or(PgnGameResult::Unknown);
+                    current_content.clear();
+                    in_result = false;
+                }
+                b"pgn" => break,
+                _ => {
+                    if in_tags {
+                        if let (Some(tag_name), false) =
+                            (&current_tag_name, current_content.is_empty())
+                        {
+                            game.set_tag(tag_name.clone(), current_content.trim().to_string());
                         }
+                        current_tag_name = None;
+                        current_content.clear();
                     }
                 }
-            }
+            },
             Ok(Event::Text(e)) => {
                 if in_tags || in_moves || in_result {
                     current_content.push_str(e.unescape().ok()?.as_ref());

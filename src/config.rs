@@ -102,7 +102,10 @@ mod tests {
             engine_path: Some(PathBuf::from("/usr/bin/pikafish")),
             show_thinking: Some(true),
         };
-        assert_eq!(config.get_engine_path(), Some(PathBuf::from("/usr/bin/pikafish")));
+        assert_eq!(
+            config.get_engine_path(),
+            Some(PathBuf::from("/usr/bin/pikafish"))
+        );
     }
 
     #[test]
@@ -120,7 +123,7 @@ mod tests {
             engine_path: None,
             show_thinking: Some(true),
         };
-        assert_eq!(config.get_show_thinking(), true);
+        assert!(config.get_show_thinking());
     }
 
     #[test]
@@ -129,7 +132,7 @@ mod tests {
             engine_path: None,
             show_thinking: None,
         };
-        assert_eq!(config.get_show_thinking(), false);
+        assert!(!config.get_show_thinking());
     }
 
     #[test]
