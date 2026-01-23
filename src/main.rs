@@ -1,13 +1,14 @@
-mod types;
 mod board;
 mod fen;
 mod fen_io;
 mod fen_print;
 mod game;
+mod notation;
+mod types;
 mod ui;
 
-use crate::game::Game;
 use crate::fen::FenError;
+use crate::game::Game;
 use crate::types::Position;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -147,7 +148,10 @@ impl App {
                     if piece.color == self.game.turn() {
                         self.selection = SelectionState::SelectingDestination(self.cursor);
                     } else {
-                        self.show_message(format!("Not your piece - it's {}'s turn", self.game.turn()));
+                        self.show_message(format!(
+                            "Not your piece - it's {}'s turn",
+                            self.game.turn()
+                        ));
                     }
                 } else {
                     self.show_message("No piece at this position".to_string());
@@ -206,8 +210,15 @@ impl App {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(RColor::Cyan).add_modifier(Modifier::BOLD))
-                    .title(Span::styled(" 提示 Info ", Style::default().fg(RColor::LightCyan)))
+                    .border_style(
+                        Style::default()
+                            .fg(RColor::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    )
+                    .title(Span::styled(
+                        " 提示 Info ",
+                        Style::default().fg(RColor::LightCyan),
+                    ))
                     .style(Style::default().bg(RColor::Black)),
             )
             .alignment(Alignment::Center);

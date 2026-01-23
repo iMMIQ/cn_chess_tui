@@ -1,6 +1,7 @@
 use crate::board::Board;
-use crate::types::{Color, Position};
 use crate::fen::FenError;
+use crate::notation::iccs;
+use crate::types::{Color, Position};
 use std::fmt::{self, Display, Formatter};
 
 /// Result of a completed game
@@ -133,6 +134,14 @@ impl Game {
     /// Get move history with piece information for notation display
     pub fn get_notated_moves(&self) -> Vec<(crate::types::Piece, Move)> {
         self.move_history.iter().map(|r| (r.piece, r.mv)).collect()
+    }
+
+    /// Get move history in ICCS notation format
+    pub fn get_moves_with_iccs(&self) -> Vec<String> {
+        self.move_history
+            .iter()
+            .map(|r| iccs::move_to_iccs(r.mv.from, r.mv.to))
+            .collect()
     }
 
     /// Make a move on the board
