@@ -1,7 +1,7 @@
-use cn_chess_tui::game::{GameController};
-use std::io::Write;
-use std::fs;
+use cn_chess_tui::game::GameController;
 use std::env;
+use std::fs;
+use std::io::Write;
 
 #[test]
 #[cfg(unix)]

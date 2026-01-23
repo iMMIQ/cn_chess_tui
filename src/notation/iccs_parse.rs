@@ -1,5 +1,5 @@
-use crate::types::Position;
 use crate::game::MoveError;
+use crate::types::Position;
 
 /// Parse ICCS move string (e.g., "h2e2") into positions
 pub fn parse_iccs_move(iccs: &str) -> Result<(Position, Position), MoveError> {
@@ -16,10 +16,11 @@ pub fn parse_iccs_move(iccs: &str) -> Result<(Position, Position), MoveError> {
     let from_rank = (chars[1] as i8) - (b'0' as i8) - 1;
     let to_rank = (chars[3] as i8) - (b'0' as i8) - 1;
 
-    if !(0..9).contains(&from_file) ||
-       !(0..10).contains(&from_rank) ||
-       !(0..9).contains(&to_file) ||
-       !(0..10).contains(&to_rank) {
+    if !(0..9).contains(&from_file)
+        || !(0..10).contains(&from_rank)
+        || !(0..9).contains(&to_file)
+        || !(0..10).contains(&to_rank)
+    {
         return Err(MoveError::InvalidMove);
     }
 

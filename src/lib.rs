@@ -15,7 +15,7 @@ pub use board::Board;
 pub use fen::{board_to_fen, fen_to_board, FenError};
 pub use fen_io::{load_fen_file, read_fen_file, write_fen_file};
 pub use fen_print::{print_board_ascii, print_game_state};
-pub use game::{Game, GameResult, GameState, Move, MoveError, AiMode, AiConfig, GameController};
+pub use game::{AiConfig, AiMode, Game, GameController, GameResult, GameState, Move, MoveError};
 pub use pgn::{PgnGame, PgnGameResult, PgnMove, PgnTag};
 // Re-export PgnGameResult as PgnResult for convenience
 pub use pgn::PgnGameResult as PgnResult;
