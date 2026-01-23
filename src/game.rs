@@ -400,6 +400,13 @@ impl Game {
         pgn_game
     }
 
+    /// Get information about whether each move in history was a capture
+    ///
+    /// Returns a Vec of booleans, where true = capture
+    pub fn get_capture_history(&self) -> Vec<bool> {
+        self.move_history.iter().map(|r| r.captured.is_some()).collect()
+    }
+
     /// Reconstruct board state at a specific point in move history
     ///
     /// # Arguments

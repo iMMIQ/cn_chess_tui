@@ -225,3 +225,68 @@ fn test_reconstruct_board_with_capture() {
     // Verify turn is correct
     assert_eq!(turn, Color::Black);
 }
+
+#[test]
+fn test_export_fen_with_moves_no_captures() {
+    use cn_chess_tui::fen;
+
+    let mut game = Game::new();
+    // Red soldier from (0, 6) moves forward to (0, 5)
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap();
+
+    let output = fen::game_to_fen_with_moves(&game);
+
+    // Should export from initial position since no captures
+    assert!(output.contains("moves"));
+    assert!(output.contains("a6a5"));
+}
+
+#[test]
+fn test_export_fen_with_moves_with_capture() {
+    use cn_chess_tui::fen;
+
+    let mut game = Game::new();
+    // Create a capture scenario with moves after the capture
+    // Red soldier moves forward
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap();
+    // Black soldier moves forward
+    game.make_move(Position::from_xy(2, 3), Position::from_xy(2, 4)).unwrap();
+    // Red soldier captures black soldier
+    game.make_move(Position::from_xy(0, 5), Position::from_xy(0, 4)).unwrap();
+    // Another move after the capture (black soldier moves)
+    game.make_move(Position::from_xy(2, 4), Position::from_xy(2, 5)).unwrap();
+
+    let output = fen::game_to_fen_with_moves(&game);
+
+    // Should export from capture position with remaining move
+    assert!(output.contains("moves"));
+
+    // Verify it's parseable
+    let parsed = fen::fen_with_moves_to_game(&output);
+    assert!(parsed.is_ok());
+
+    // Verify the parsed game has the correct state
+    let parsed_game = parsed.unwrap();
+    assert_eq!(game.turn(), parsed_game.turn());
+}
+
+#[test]
+fn test_fen_with_moves_roundtrip() {
+    use cn_chess_tui::fen;
+
+    let mut game = Game::new();
+    // Red soldier moves forward
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap();
+    // Black soldier moves forward
+    game.make_move(Position::from_xy(0, 3), Position::from_xy(0, 4)).unwrap();
+
+    // Export
+    let exported = fen::game_to_fen_with_moves(&game);
+
+    // Parse back
+    let parsed_game = fen::fen_with_moves_to_game(&exported).unwrap();
+
+    // Verify same position
+    assert_eq!(game.turn(), parsed_game.turn());
+    assert_eq!(game.get_moves().len(), parsed_game.get_moves().len());
+}

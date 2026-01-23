@@ -302,6 +302,54 @@ pub fn fen_with_moves_to_game(input: &str) -> Result<crate::game::Game, FenError
     Ok(game)
 }
 
+/// Export game state as FEN with moves (from last capture position)
+///
+/// Format: `fen <fen_string> moves <move1> <move2> ...`
+///
+/// The FEN represents the position after the last capture (or initial if no captures),
+/// and moves contains all subsequent moves.
+pub fn game_to_fen_with_moves(game: &crate::game::Game) -> String {
+    use crate::types::Color;
+
+    // Find the last capture in move history
+    let capture_history = game.get_capture_history();
+    let last_capture_index = capture_history.iter()
+        .rposition(|&is_capture| is_capture);
+
+    let (base_fen, remaining_moves) = match last_capture_index {
+        Some(idx) => {
+            // Reconstruct board at last capture (after that move)
+            let (board, turn) = game.reconstruct_board_at_move(idx + 1);
+            let fen = board_to_fen(&board, turn, 0, ((idx + 1) / 2 + 1) as u32);
+
+            // Get remaining moves (after the last capture)
+            let all_moves = game.get_moves_with_iccs();
+            let remaining: Vec<_> = all_moves.into_iter().skip(idx + 1).collect();
+
+            (fen, remaining)
+        }
+        None => {
+            // No captures, use initial position
+            let fen = board_to_fen(
+                &Board::new(),
+                Color::Red,
+                0,
+                1
+            );
+            let all_moves = game.get_moves_with_iccs();
+
+            (fen, all_moves)
+        }
+    };
+
+    // Format output
+    if remaining_moves.is_empty() {
+        format!("fen {}", base_fen)
+    } else {
+        format!("fen {} moves {}", base_fen, remaining_moves.join(" "))
+    }
+}
+
 // TODO: Add from_fen and to_fen functions in subsequent tasks
 
 #[cfg(test)]
