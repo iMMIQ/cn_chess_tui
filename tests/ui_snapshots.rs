@@ -32,3 +32,57 @@ fn test_initial_position_ui() {
     // insta automatically captures snapshot and compares to stored version
     assert_snapshot!(terminal.backend());
 }
+
+/// Test snapshot of initial game position on small terminal (40x26).
+///
+/// This test verifies UI rendering on compact terminal dimensions, ensuring:
+/// - Board layout adapts correctly to limited width and height
+/// - All essential UI elements remain visible and properly aligned
+/// - Text and borders are rendered without overflow or truncation
+///
+/// Small terminals are common in embedded systems, split-screen setups,
+/// or when users prefer compact windows. Uses cursor at (0, 0) with no
+/// selection to match the standard test behavior.
+#[test]
+fn test_initial_position_small_terminal() {
+    let game = Game::new();
+    let mut terminal = Terminal::new(TestBackend::new(40, 26)).unwrap();
+
+    terminal
+        .draw(|f| {
+            // Cursor at top-left corner (0, 0) with no selection for initial position
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game, cursor, None);
+        })
+        .unwrap();
+
+    // insta automatically captures snapshot and compares to stored version
+    assert_snapshot!(terminal.backend());
+}
+
+/// Test snapshot of initial game position on large terminal (120x40).
+///
+/// This test verifies UI rendering on spacious terminal dimensions, ensuring:
+/// - Board layout utilizes available space appropriately
+/// - UI elements maintain proper alignment and proportions
+/// - No unnecessary whitespace or layout issues at larger sizes
+///
+/// Large terminals are common on modern high-resolution displays or when
+/// users maximize terminal windows. Uses cursor at (0, 0) with no selection
+/// to match the standard test behavior.
+#[test]
+fn test_initial_position_large_terminal() {
+    let game = Game::new();
+    let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+
+    terminal
+        .draw(|f| {
+            // Cursor at top-left corner (0, 0) with no selection for initial position
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game, cursor, None);
+        })
+        .unwrap();
+
+    // insta automatically captures snapshot and compares to stored version
+    assert_snapshot!(terminal.backend());
+}
