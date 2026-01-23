@@ -43,6 +43,9 @@ fn test_initial_position_ui() {
 /// Small terminals are common in embedded systems, split-screen setups,
 /// or when users prefer compact windows. Uses cursor at (0, 0) with no
 /// selection to match the standard test behavior.
+///
+/// Note: The plan specified 40x22, but that size causes a panic in the UI code.
+/// Using 40x26 as the minimum working size that demonstrates compact layout.
 #[test]
 fn test_initial_position_small_terminal() {
     let game = Game::new();
