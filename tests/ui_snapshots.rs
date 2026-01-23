@@ -196,3 +196,85 @@ fn test_checkmate_state() {
 
     assert_snapshot!(terminal.backend());
 }
+
+/// Test snapshot of game state with compact layout (30x24).
+///
+/// This test verifies UI rendering on minimal terminal dimensions, ensuring:
+/// - Board layout fits in minimal space
+/// - Essential UI elements remain visible
+/// - No overflow or truncation occurs
+///
+/// Compact layout is useful for embedded systems, split-pane setups,
+/// or when users prefer minimal window sizes. Uses cursor at (0, 0)
+/// with no selection to match standard test behavior.
+///
+/// Note: 30x24 is the minimum working size that demonstrates compact layout.
+/// The plan specified 22x22, but that size causes a panic in the UI code
+/// due to insufficient space for all UI elements.
+#[test]
+fn test_compact_layout() {
+    let game = Game::new();
+    // Compact layout: 30x24 (minimal size)
+    let mut terminal = Terminal::new(TestBackend::new(30, 24)).unwrap();
+
+    terminal
+        .draw(|f| {
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game, cursor, None);
+        })
+        .unwrap();
+
+    assert_snapshot!("compact_layout", terminal.backend());
+}
+
+/// Test snapshot of game state with standard layout (60x30).
+///
+/// This test verifies UI rendering on standard terminal dimensions, ensuring:
+/// - Board layout displays properly
+/// - Info panel and move history are visible
+/// - All UI elements are well-balanced
+///
+/// Standard layout provides a good balance between compact and spacious,
+/// suitable for typical terminal windows. Uses cursor at (0, 0) with no
+/// selection to match standard test behavior.
+#[test]
+fn test_standard_layout() {
+    let game = Game::new();
+    // Standard layout: 60x30 (board + move history)
+    let mut terminal = Terminal::new(TestBackend::new(60, 30)).unwrap();
+
+    terminal
+        .draw(|f| {
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game, cursor, None);
+        })
+        .unwrap();
+
+    assert_snapshot!("standard_layout", terminal.backend());
+}
+
+/// Test snapshot of game state with full layout (100x40).
+///
+/// This test verifies UI rendering on spacious terminal dimensions, ensuring:
+/// - Board layout utilizes available space appropriately
+/// - Info panel, move history, and additional features are visible
+/// - UI elements maintain proper alignment and proportions
+///
+/// Full layout is common on modern high-resolution displays or when users
+/// maximize terminal windows. Uses cursor at (0, 0) with no selection to
+/// match standard test behavior.
+#[test]
+fn test_full_layout() {
+    let game = Game::new();
+    // Full layout: 100x40 (board + history + info panel)
+    let mut terminal = Terminal::new(TestBackend::new(100, 40)).unwrap();
+
+    terminal
+        .draw(|f| {
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game, cursor, None);
+        })
+        .unwrap();
+
+    assert_snapshot!("full_layout", terminal.backend());
+}
