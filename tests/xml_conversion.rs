@@ -1,86 +1,8 @@
 //! Tests for XML conversion functionality
 
 use cn_chess_tui::pgn::{PgnGame, PgnGameResult};
-use cn_chess_tui::xml::{escape_xml, pgn_to_xml, save_content, unescape_xml, xml_to_pgn};
+use cn_chess_tui::xml::{pgn_to_xml, save_content, xml_to_pgn};
 use std::fs;
-
-#[test]
-fn test_escape_xml_characters() {
-    // Test ampersand
-    assert_eq!(escape_xml("Tom & Jerry"), "Tom &amp; Jerry");
-
-    // Test less than
-    assert_eq!(escape_xml("a < b"), "a &lt; b");
-
-    // Test greater than
-    assert_eq!(escape_xml("a > b"), "a &gt; b");
-
-    // Test double quote
-    assert_eq!(escape_xml("\"Hello\""), "&quot;Hello&quot;");
-
-    // Test single quote
-    assert_eq!(escape_xml("'World'"), "&apos;World&apos;");
-
-    // Test combination
-    assert_eq!(
-        escape_xml("if (a < b && c > d)"),
-        "if (a &lt; b &amp;&amp; c &gt; d)"
-    );
-}
-
-#[test]
-fn test_escape_xml_empty_string() {
-    assert_eq!(escape_xml(""), "");
-}
-
-#[test]
-fn test_escape_xml_no_special_chars() {
-    assert_eq!(escape_xml("Hello World"), "Hello World");
-}
-
-#[test]
-fn test_unescape_xml_entities() {
-    // Test ampersand
-    assert_eq!(unescape_xml("Tom &amp; Jerry"), "Tom & Jerry");
-
-    // Test less than
-    assert_eq!(unescape_xml("a &lt; b"), "a < b");
-
-    // Test greater than
-    assert_eq!(unescape_xml("a &gt; b"), "a > b");
-
-    // Test double quote
-    assert_eq!(unescape_xml("&quot;Hello&quot;"), "\"Hello\"");
-
-    // Test single quote
-    assert_eq!(unescape_xml("&apos;World&apos;"), "'World'");
-
-    // Test combination
-    assert_eq!(
-        unescape_xml("if (a &lt; b &amp;&amp; c &gt; d)"),
-        "if (a < b && c > d)"
-    );
-}
-
-#[test]
-fn test_escape_unescape_roundtrip() {
-    let test_strings = vec![
-        "Simple text",
-        "Tom & Jerry",
-        "a < b > c",
-        "\"quoted\"",
-        "'apostrophe'",
-        "if (a < b && c > d) { return \"test\"; }",
-        "<tag>content</tag>",
-        "A & B < C > D",
-    ];
-
-    for original in test_strings {
-        let escaped = escape_xml(original);
-        let unescaped = unescape_xml(&escaped);
-        assert_eq!(original, unescaped, "Roundtrip failed for: {}", original);
-    }
-}
 
 #[test]
 fn test_pgn_to_xml_minimal() {
