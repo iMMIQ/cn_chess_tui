@@ -8,3 +8,6 @@
 pub mod chinese;
 pub mod iccs;
 pub mod wxf;
+
+// Re-export Chinese notation types and functions
+pub use chinese::{move_to_chinese, piece_to_chinese, MovementDirection};
