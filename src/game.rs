@@ -488,4 +488,47 @@ impl GameController {
     pub fn set_ai_config(&mut self, config: AiConfig) {
         self.ai_config = config;
     }
+
+    /// Make a move as a human player (not AI)
+    pub fn human_move(&mut self, from: Position, to: Position) -> Result<(), MoveError> {
+        // If AI is thinking, don't allow human moves
+        if self.engine_thinking {
+            return Err(MoveError::InvalidMove);
+        }
+
+        self.game.make_move(from, to)
+    }
+
+    /// Undo the last move
+    pub fn undo_move(&mut self) -> bool {
+        if self.engine_thinking {
+            return false; // Don't allow undo while AI is thinking
+        }
+        self.game.undo_move()
+    }
+
+    /// Check if AI should make the next move
+    fn should_ai_move(&self) -> bool {
+        if matches!(self.game.state(), GameState::Playing) {
+            match self.ai_mode {
+                AiMode::Off => false,
+                AiMode::PlaysRed => self.game.turn() == Color::Red,
+                AiMode::PlaysBlack => self.game.turn() == Color::Black,
+                AiMode::PlaysBoth => true,
+            }
+        } else {
+            false
+        }
+    }
+
+    /// Trigger AI to make a move (will be implemented in Task 3)
+    pub fn trigger_ai_move(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        if !self.should_ai_move() {
+            return Ok(());
+        }
+
+        // Stub: will be implemented in Task 3 with engine integration
+        self.engine_thinking = true;
+        Ok(())
+    }
 }
