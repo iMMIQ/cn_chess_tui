@@ -5,7 +5,9 @@
 
 pub mod protocol;
 pub mod serializer;
+pub mod parser;
 
 pub use protocol::{
     EngineState, GoMode, MoveResult, OptionType, UcciCommand, UcciResponse,
 };
+pub use parser::ParseError;
