@@ -6,6 +6,7 @@ mod game;
 mod notation;
 mod pgn;
 mod types;
+mod ucci;
 mod ui;
 
 use crate::fen::FenError;

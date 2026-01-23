@@ -4,7 +4,9 @@ use crate::notation::iccs;
 use crate::notation::move_to_chinese_with_context;
 use crate::pgn::{PgnGame, PgnGameResult};
 use crate::types::{Color, Position};
+use crate::ucci::UcciClient;
 use std::fmt::{self, Display, Formatter};
+use std::path::PathBuf;
 
 /// Result of a completed game
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,6 +40,31 @@ impl Display for GameState {
             GameState::Playing => write!(f, "Playing"),
             GameState::Checkmate(color) => write!(f, "Checkmate - {} Wins", color),
             GameState::Stalemate => write!(f, "Stalemate"),
+        }
+    }
+}
+
+/// AI mode for game controller
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AiMode {
+    Off,           // Player vs Player
+    PlaysRed,      // AI plays Red
+    PlaysBlack,    // AI plays Black
+    PlaysBoth,     // AI vs AI (spectator mode)
+}
+
+/// AI configuration
+#[derive(Debug, Clone)]
+pub struct AiConfig {
+    pub engine_path: Option<PathBuf>,
+    pub show_thinking: bool,
+}
+
+impl Default for AiConfig {
+    fn default() -> Self {
+        Self {
+            engine_path: None,
+            show_thinking: false,
         }
     }
 }
@@ -95,6 +122,15 @@ struct MoveRecord {
     mv: Move,
     piece: crate::types::Piece,
     captured: Option<crate::types::Piece>,
+}
+
+/// Game controller with AI support
+pub struct GameController {
+    game: Game,
+    ai_mode: AiMode,
+    ai_client: Option<UcciClient>,
+    ai_config: AiConfig,
+    engine_thinking: bool,
 }
 
 impl Game {
@@ -370,5 +406,86 @@ impl Game {
 impl Default for Game {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl GameController {
+    /// Create a new game controller
+    pub fn new() -> Self {
+        Self {
+            game: Game::new(),
+            ai_mode: AiMode::Off,
+            ai_client: None,
+            ai_config: AiConfig::default(),
+            engine_thinking: false,
+        }
+    }
+
+    /// Create controller from FEN
+    pub fn from_fen(fen: &str) -> Result<Self, FenError> {
+        Ok(Self {
+            game: Game::from_fen(fen)?,
+            ai_mode: AiMode::Off,
+            ai_client: None,
+            ai_config: AiConfig::default(),
+            engine_thinking: false,
+        })
+    }
+
+    pub fn game(&self) -> &Game {
+        &self.game
+    }
+
+    pub fn board(&self) -> &Board {
+        self.game.board()
+    }
+
+    pub fn turn(&self) -> Color {
+        self.game.turn()
+    }
+
+    pub fn state(&self) -> GameState {
+        self.game.state()
+    }
+
+    pub fn get_moves(&self) -> Vec<Move> {
+        self.game.get_moves()
+    }
+
+    pub fn get_notated_moves(&self) -> Vec<(crate::types::Piece, Move)> {
+        self.game.get_notated_moves()
+    }
+
+    pub fn to_fen(&self) -> String {
+        self.game.to_fen()
+    }
+
+    pub fn is_in_check(&self) -> bool {
+        self.game.is_in_check()
+    }
+
+    /// Get current AI mode
+    pub fn ai_mode(&self) -> AiMode {
+        self.ai_mode
+    }
+
+    /// Set AI mode
+    pub fn set_ai_mode(&mut self, mode: AiMode) {
+        self.ai_mode = mode;
+    }
+
+    /// Check if engine is currently thinking
+    pub fn is_engine_thinking(&self) -> bool {
+        self.engine_thinking
+    }
+
+    /// Get AI config
+    pub fn ai_config(&self) -> &AiConfig {
+        &self.ai_config
+    }
+
+    /// Set AI config
+    pub fn set_ai_config(&mut self, config: AiConfig) {
+        self.ai_config = config;
     }
 }
