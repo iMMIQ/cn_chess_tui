@@ -307,3 +307,61 @@ fn test_game_to_fen_with_moves_method() {
     assert!(output.contains("moves"));
     assert!(output.contains("a6a5"));
 }
+
+#[test]
+fn test_fen_with_moves_document_example() {
+    use cn_chess_tui::fen;
+
+    // Test parsing FEN with 10 moves (same complexity as document example)
+    // Using valid game state from initial position with realistic soldier moves
+    let input = "position fen rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves a6a5 a3a4 c6c5 c3c4 e6e5 e3e4 g6g5 g3g4 i6i5 i3i4";
+
+    let game = fen::fen_with_moves_to_game(input);
+    assert!(game.is_ok());
+
+    let game = game.unwrap();
+    // Verify all 10 moves were applied
+    assert_eq!(game.get_moves().len(), 10);
+}
+
+#[test]
+fn test_export_fen_with_moves_multiple_captures() {
+    use cn_chess_tui::fen;
+    let mut game = Game::new();
+
+    // Make multiple moves, including captures
+    // First, move pieces so they can meet
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap(); // Red soldier forward
+    game.make_move(Position::from_xy(0, 3), Position::from_xy(0, 4)).unwrap(); // Black soldier forward
+    game.make_move(Position::from_xy(2, 6), Position::from_xy(2, 5)).unwrap(); // Red soldier forward
+    game.make_move(Position::from_xy(2, 3), Position::from_xy(2, 4)).unwrap(); // Black soldier forward
+
+    // First capture - Red soldier captures black soldier at (0,4)
+    game.make_move(Position::from_xy(0, 5), Position::from_xy(0, 4)).unwrap();
+
+    // Black moves (non-capture)
+    game.make_move(Position::from_xy(4, 3), Position::from_xy(4, 4)).unwrap(); // Black soldier
+
+    // Red moves (non-capture)
+    game.make_move(Position::from_xy(4, 6), Position::from_xy(4, 5)).unwrap(); // Red soldier
+
+    // Black moves (non-capture)
+    game.make_move(Position::from_xy(6, 3), Position::from_xy(6, 4)).unwrap(); // Black soldier
+
+    // Second capture - Red soldier captures black soldier at (4,4)
+    game.make_move(Position::from_xy(4, 5), Position::from_xy(4, 4)).unwrap();
+
+    // Another move after the capture (Black's turn)
+    game.make_move(Position::from_xy(8, 3), Position::from_xy(8, 4)).unwrap(); // Black soldier
+
+    let exported = game.to_fen_with_moves();
+
+    // Should export from the last capture with remaining moves
+    assert!(exported.contains("moves"));
+
+    let parsed = fen::fen_with_moves_to_game(&exported).unwrap();
+    // Should have the last capture and only one move after it (not two)
+    // The export starts from the last capture position, so the FEN represents
+    // the board state after the capture, and then we replay the remaining moves
+    assert_eq!(parsed.get_moves().len(), 1);
+}
