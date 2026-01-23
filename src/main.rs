@@ -30,10 +30,13 @@ use std::time::{Duration, Instant};
 
 fn print_usage() {
     println!("Chinese Chess TUI - Usage:");
-    println!("  cn_chess_tui              Start a new game");
+    println!("  cn_chess_tui               Start a new game");
     println!("  cn_chess_tui --print <fen> Print FEN position to terminal and exit");
     println!("  cn_chess_tui --fen <fen>   Load and play from FEN string");
     println!("  cn_chess_tui --file <path> Load and play from .fen file");
+    println!("  cn_chess_tui --pgn <path>  Load and play from .pgn file");
+    println!("  cn_chess_tui --export-pgn  Export current game to PGN (not yet implemented)");
+    println!("  cn_chess_tui --export-xml  Export current game to XML (not yet implemented)");
     println!("  cn_chess_tui --help        Show this help message");
 }
 
@@ -86,6 +89,71 @@ impl App {
     fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let fen = crate::fen_io::read_fen_file(path)?;
         let game = Game::from_fen(&fen)?;
+        Ok(Self {
+            game,
+            cursor: Position::from_xy(4, 9),
+            selection: SelectionState::SelectingSource,
+            message: None,
+            message_time: Instant::now(),
+            running: true,
+        })
+    }
+
+    fn from_pgn(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        // Read PGN file
+        let pgn_content = std::fs::read_to_string(path)?;
+
+        // Parse PGN
+        let pgn_game = crate::pgn::PgnGame::parse(&pgn_content)
+            .ok_or("Failed to parse PGN file")?;
+
+        // Create game and apply moves from PGN
+        let mut game = Game::new();
+
+        // Check if FEN tag is present and use it
+        if let Some(fen) = pgn_game.get_tag("FEN") {
+            if !fen.is_empty() {
+                game = Game::from_fen(fen)?;
+            }
+        }
+
+        // Apply all moves from the PGN
+        for pgn_move in &pgn_game.moves {
+            // Parse the move notation (assuming ICCS format)
+            let notation = &pgn_move.notation;
+
+            // ICCS notation is 4 characters: from_x, from_y, to_x, to_y
+            // Example: "h2e2" means from h2 to e2
+            if notation.len() >= 4 {
+                let chars: Vec<char> = notation.chars().collect();
+
+                // Parse from position (e.g., "h2" -> x=7, y=1)
+                // Files: a=0, b=1, ..., h=7, i=8
+                // Ranks: 0=0, 1=1, ..., 9=9
+                let from_file = (chars[0] as i8) - (b'a' as i8);
+                let from_rank = (chars[1] as i8) - (b'0' as i8) - 1;
+
+                // Parse to position (e.g., "e2" -> x=4, y=1)
+                let to_file = (chars[2] as i8) - (b'a' as i8);
+                let to_rank = (chars[3] as i8) - (b'0' as i8) - 1;
+
+                // Validate coordinates are within board bounds
+                if (0..9).contains(&from_file) && (0..10).contains(&from_rank)
+                    && (0..9).contains(&to_file) && (0..10).contains(&to_rank)
+                {
+                    let from = Position::from_xy(from_file as usize, from_rank as usize);
+                    let to = Position::from_xy(to_file as usize, to_rank as usize);
+
+                    // Attempt to make the move
+                    if game.make_move(from, to).is_err() {
+                        // If move fails, continue with next move
+                        // This allows partially loading games with invalid moves
+                        eprintln!("Warning: Failed to apply move {}", notation);
+                    }
+                }
+            }
+        }
+
         Ok(Self {
             game,
             cursor: Position::from_xy(4, 9),
@@ -363,6 +431,27 @@ fn main() {
                 }
                 Err(e) => {
                     eprintln!("Error loading file: {}", e);
+                    process::exit(1);
+                }
+            }
+        }
+        "--pgn" => {
+            if args.len() < 3 {
+                eprintln!("Error: --pgn requires a file path");
+                println!();
+                print_usage();
+                process::exit(1);
+            }
+            let path = &args[2];
+            match App::from_pgn(path) {
+                Ok(mut app) => {
+                    if let Err(e) = run_game(&mut app) {
+                        eprintln!("Error running game: {}", e);
+                        process::exit(1);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error loading PGN file: {}", e);
                     process::exit(1);
                 }
             }
