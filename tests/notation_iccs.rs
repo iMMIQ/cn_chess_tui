@@ -1,4 +1,6 @@
-use cn_chess_tui::{types::Position, notation::iccs::position_to_iccs, notation::iccs::iccs_to_position};
+use cn_chess_tui::{
+    notation::iccs::iccs_to_position, notation::iccs::position_to_iccs, types::Position,
+};
 
 #[test]
 fn test_position_to_iccs_red_home() {

@@ -2,13 +2,13 @@ use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PieceType {
-    General,    // 帅/将
-    Advisor,    // 仕/士
-    Elephant,   // 相/象
-    Horse,      // 马
-    Chariot,    // 车
-    Cannon,     // 炮
-    Soldier,    // 兵/卒
+    General,  // 帅/将
+    Advisor,  // 仕/士
+    Elephant, // 相/象
+    Horse,    // 马
+    Chariot,  // 车
+    Cannon,   // 炮
+    Soldier,  // 兵/卒
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -70,8 +70,8 @@ impl Display for Piece {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Position {
-    pub x: usize,  // 0-8 (file/column)
-    pub y: usize,  // 0-9 (rank/row)
+    pub x: usize, // 0-8 (file/column)
+    pub y: usize, // 0-9 (rank/row)
 }
 
 impl Position {

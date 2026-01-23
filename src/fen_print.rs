@@ -1,8 +1,8 @@
 //! Terminal position printing without entering game loop
 
 use crate::board::Board;
-use crate::types::{Position, move_to_simple_notation};
 use crate::game::Game;
+use crate::types::{move_to_simple_notation, Position};
 
 /// Print a board position to stdout using ASCII art
 ///

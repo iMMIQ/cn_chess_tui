@@ -1,5 +1,5 @@
 use crate::game::{Game, GameState};
-use crate::types::{Color, Position, move_to_simple_notation};
+use crate::types::{move_to_simple_notation, Color, Position};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Color as RColor, Modifier, Style},
@@ -75,7 +75,13 @@ impl LayoutConfig {
         let help_height = 3;
 
         // Cell sizing based on terminal width
-        let cell_width = if width >= 100 { 4 } else if width >= 70 { 3 } else { 2 };
+        let cell_width = if width >= 100 {
+            4
+        } else if width >= 70 {
+            3
+        } else {
+            2
+        };
         let cell_height = 2;
 
         let show_river_text = width >= 60;
@@ -105,12 +111,7 @@ impl LayoutConfig {
 pub struct UI;
 
 impl UI {
-    pub fn draw(
-        f: &mut Frame,
-        game: &Game,
-        cursor: Position,
-        selection: Option<Position>,
-    ) {
+    pub fn draw(f: &mut Frame, game: &Game, cursor: Position, selection: Option<Position>) {
         let size = f.area();
         let config = LayoutConfig::from_terminal_size(size);
 
@@ -217,14 +218,26 @@ impl UI {
         let border_style = Style::default().fg(C_PRIMARY);
 
         let line1 = vec![
-            Span::styled("◆", Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD)),
-            Span::styled(" 中国象棋 ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "◆",
+                Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                " 中国象棋 ",
+                Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD),
+            ),
             Span::styled("Chinese Chess ", Style::default().fg(C_ACCENT)),
-            Span::styled("◆", Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "◆",
+                Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD),
+            ),
         ];
 
         let check_indicator = if game.is_in_check() {
-            Span::styled(" 将军! ", Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD))
+            Span::styled(
+                " 将军! ",
+                Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD),
+            )
         } else {
             Span::raw("")
         };
@@ -234,15 +247,22 @@ impl UI {
             Color::Black => " 黑方 ",
         };
         let turn_style = match game.turn() {
-            Color::Red => Style::default().fg(C_RED_PIECE).add_modifier(Modifier::BOLD),
-            Color::Black => Style::default().fg(C_BLACK_PIECE).add_modifier(Modifier::BOLD),
+            Color::Red => Style::default()
+                .fg(C_RED_PIECE)
+                .add_modifier(Modifier::BOLD),
+            Color::Black => Style::default()
+                .fg(C_BLACK_PIECE)
+                .add_modifier(Modifier::BOLD),
         };
 
         let line2 = vec![
             Span::styled("当前回合: ", Style::default().fg(C_SECONDARY)),
             Span::styled(turn_text, turn_style),
             check_indicator,
-            Span::styled(format!("着法: {}", game.get_moves().len()), Style::default().fg(C_GOLD)),
+            Span::styled(
+                format!("着法: {}", game.get_moves().len()),
+                Style::default().fg(C_GOLD),
+            ),
         ];
 
         let line3 = vec![
@@ -258,7 +278,11 @@ impl UI {
 
         f.render_widget(
             Paragraph::new(lines)
-                .block(Block::default().borders(BORDER_ALL).border_style(border_style))
+                .block(
+                    Block::default()
+                        .borders(BORDER_ALL)
+                        .border_style(border_style),
+                )
                 .alignment(Alignment::Center),
             area,
         );
@@ -267,9 +291,10 @@ impl UI {
     /// Draw the help bar at the bottom
     fn draw_help_bar(f: &mut Frame, area: Rect, _config: &LayoutConfig) {
         let help_text = vec![
-            Line::from(vec![
-                Span::styled(" 快捷键 Help ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
-            ]),
+            Line::from(vec![Span::styled(
+                " 快捷键 Help ",
+                Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD),
+            )]),
             Line::from(vec![
                 Span::styled(" ↑↓←→ ", Style::default().fg(C_ACCENT)),
                 Span::styled("移动光标  ", Style::default().fg(C_SECONDARY)),
@@ -287,7 +312,11 @@ impl UI {
 
         f.render_widget(
             Paragraph::new(help_text)
-                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                .block(
+                    Block::default()
+                        .borders(BORDER_ALL)
+                        .border_style(Style::default().fg(C_SECONDARY)),
+                )
                 .alignment(Alignment::Center),
             area,
         );
@@ -309,7 +338,10 @@ impl UI {
         let block = Block::default()
             .borders(BORDER_ALL)
             .border_style(Style::default().fg(C_SECONDARY))
-            .title(Span::styled(" 棋盘 Board ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)));
+            .title(Span::styled(
+                " 棋盘 Board ",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            ));
 
         f.render_widget(block, board_area);
 
@@ -337,35 +369,43 @@ impl UI {
             Color::Black => C_BLACK_PIECE,
         };
 
-        let check = if game.is_in_check() {
-            "将军!"
-        } else {
-            ""
-        };
+        let check = if game.is_in_check() { "将军!" } else { "" };
 
         let lines = vec![
-            Line::from(vec![
-                Span::styled(" 信息 Info ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
-            ]),
+            Line::from(vec![Span::styled(
+                " 信息 Info ",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            )]),
             Line::from(""),
             Line::from(vec![
                 Span::styled("回合:", Style::default().fg(C_SECONDARY)),
-                Span::styled(turn, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    turn,
+                    Style::default().fg(turn_color).add_modifier(Modifier::BOLD),
+                ),
             ]),
             Line::from(""),
             Line::from(vec![
                 Span::styled("步数:", Style::default().fg(C_SECONDARY)),
-                Span::styled(format!(" {}", game.get_moves().len()), Style::default().fg(C_GOLD)),
+                Span::styled(
+                    format!(" {}", game.get_moves().len()),
+                    Style::default().fg(C_GOLD),
+                ),
             ]),
             Line::from(""),
-            Line::from(vec![
-                Span::styled(check, Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD)),
-            ]),
+            Line::from(vec![Span::styled(
+                check,
+                Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD),
+            )]),
         ];
 
         f.render_widget(
             Paragraph::new(lines)
-                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                .block(
+                    Block::default()
+                        .borders(BORDER_ALL)
+                        .border_style(Style::default().fg(C_SECONDARY)),
+                )
                 .alignment(Alignment::Left),
             area,
         );
@@ -375,9 +415,10 @@ impl UI {
     fn draw_move_history(f: &mut Frame, area: Rect, game: &Game, _config: &LayoutConfig) {
         let moves = game.get_notated_moves();
         let mut move_lines: Vec<Line> = vec![
-            Line::from(vec![
-                Span::styled(" 着法记录 History ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
-            ]),
+            Line::from(vec![Span::styled(
+                " 着法记录 History ",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            )]),
             Line::from(""),
         ];
 
@@ -394,13 +435,14 @@ impl UI {
             .collect();
 
         if recent_moves.is_empty() {
-            move_lines.push(Line::from(vec![
-                Span::styled("  暂无着法", Style::default().fg(C_GRID)),
-            ]));
+            move_lines.push(Line::from(vec![Span::styled(
+                "  暂无着法",
+                Style::default().fg(C_GRID),
+            )]));
         } else {
             for (num, notation) in recent_moves.into_iter().rev() {
                 let color = if num % 2 == 1 {
-                    C_RED_PIECE  // Red moves first (odd numbers)
+                    C_RED_PIECE // Red moves first (odd numbers)
                 } else {
                     C_BLACK_PIECE
                 };
@@ -413,7 +455,11 @@ impl UI {
 
         f.render_widget(
             Paragraph::new(move_lines)
-                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                .block(
+                    Block::default()
+                        .borders(BORDER_ALL)
+                        .border_style(Style::default().fg(C_SECONDARY)),
+                )
                 .alignment(Alignment::Left),
             area,
         );
@@ -449,34 +495,53 @@ impl UI {
         };
 
         let lines = vec![
-            Line::from(vec![
-                Span::styled(" 游戏信息 Info ", Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD)),
-            ]),
+            Line::from(vec![Span::styled(
+                " 游戏信息 Info ",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            )]),
             Line::from(""),
             Line::from(vec![
                 Span::styled("当前回合:", Style::default().fg(C_SECONDARY)),
-                Span::styled(turn, Style::default().fg(turn_color).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    turn,
+                    Style::default().fg(turn_color).add_modifier(Modifier::BOLD),
+                ),
             ]),
             Line::from(""),
             Line::from(vec![
                 Span::styled("总步数:", Style::default().fg(C_SECONDARY)),
-                Span::styled(format!(" {}", game.get_moves().len()), Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    format!(" {}", game.get_moves().len()),
+                    Style::default().fg(C_GOLD).add_modifier(Modifier::BOLD),
+                ),
             ]),
             Line::from(""),
             Line::from(vec![
                 Span::styled("将军状态:", Style::default().fg(C_SECONDARY)),
-                Span::styled(check_indicator, Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    check_indicator,
+                    Style::default().fg(C_CHECK).add_modifier(Modifier::BOLD),
+                ),
             ]),
             Line::from(""),
             Line::from(vec![
                 Span::styled("游戏状态:", Style::default().fg(C_SECONDARY)),
-                Span::styled(state_text, Style::default().fg(state_color).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    state_text,
+                    Style::default()
+                        .fg(state_color)
+                        .add_modifier(Modifier::BOLD),
+                ),
             ]),
         ];
 
         f.render_widget(
             Paragraph::new(lines)
-                .block(Block::default().borders(BORDER_ALL).border_style(Style::default().fg(C_SECONDARY)))
+                .block(
+                    Block::default()
+                        .borders(BORDER_ALL)
+                        .border_style(Style::default().fg(C_SECONDARY)),
+                )
                 .alignment(Alignment::Left),
             area,
         );
@@ -513,7 +578,15 @@ impl UI {
                 };
 
                 let style = if is_corner { corner_style } else { grid_style };
-                f.render_widget(Paragraph::new(Span::styled(c, style)), Rect { x: px, y: py, width: 1, height: 1 });
+                f.render_widget(
+                    Paragraph::new(Span::styled(c, style)),
+                    Rect {
+                        x: px,
+                        y: py,
+                        width: 1,
+                        height: 1,
+                    },
+                );
 
                 // Horizontal lines
                 if x < BOARD_COLS - 1 && config.cell_width > 1 {
@@ -521,7 +594,12 @@ impl UI {
                         let hx = px + i;
                         f.render_widget(
                             Paragraph::new(Span::styled("─", grid_style)),
-                            Rect { x: hx, y: py, width: 1, height: 1 },
+                            Rect {
+                                x: hx,
+                                y: py,
+                                width: 1,
+                                height: 1,
+                            },
                         );
                     }
                 }
@@ -534,11 +612,18 @@ impl UI {
                     let px = area.x + px;
                     let py = area.y + py + 1;
 
-                    if y == 4 { continue; } // Skip river
+                    if y == 4 {
+                        continue;
+                    } // Skip river
 
                     f.render_widget(
                         Paragraph::new(Span::styled("│", grid_style)),
-                        Rect { x: px, y: py, width: 1, height: 1 },
+                        Rect {
+                            x: px,
+                            y: py,
+                            width: 1,
+                            height: 1,
+                        },
                     );
                 }
             }
@@ -557,13 +642,27 @@ impl UI {
         let right_w = 6 * config.cell_width;
 
         f.render_widget(
-            Paragraph::new(chu).style(river_style).alignment(Alignment::Left),
-            Rect { x: area.x, y: river_y, width: left_w, height: 1 },
+            Paragraph::new(chu)
+                .style(river_style)
+                .alignment(Alignment::Left),
+            Rect {
+                x: area.x,
+                y: river_y,
+                width: left_w,
+                height: 1,
+            },
         );
 
         f.render_widget(
-            Paragraph::new(han).style(river_style).alignment(Alignment::Right),
-            Rect { x: area.x + (BOARD_COLS as u16) * config.cell_width - right_w, y: river_y, width: right_w, height: 1 },
+            Paragraph::new(han)
+                .style(river_style)
+                .alignment(Alignment::Right),
+            Rect {
+                x: area.x + (BOARD_COLS as u16) * config.cell_width - right_w,
+                y: river_y,
+                width: right_w,
+                height: 1,
+            },
         );
     }
 
@@ -585,7 +684,12 @@ impl UI {
                 Paragraph::new(piece_text)
                     .style(Style::default().fg(fg).add_modifier(Modifier::BOLD))
                     .alignment(Alignment::Center),
-                Rect { x: px, y: py, width: piece_width, height: 1 },
+                Rect {
+                    x: px,
+                    y: py,
+                    width: piece_width,
+                    height: 1,
+                },
             );
         }
     }
@@ -597,14 +701,24 @@ impl UI {
         let w = config.cell_width.min(3);
 
         f.render_widget(
-            Block::default().borders(BORDER_ALL).border_style(
-                Style::default().fg(C_CURSOR).add_modifier(Modifier::BOLD)
-            ),
-            Rect { x: px, y: py, width: w, height: 1 },
+            Block::default()
+                .borders(BORDER_ALL)
+                .border_style(Style::default().fg(C_CURSOR).add_modifier(Modifier::BOLD)),
+            Rect {
+                x: px,
+                y: py,
+                width: w,
+                height: 1,
+            },
         );
     }
 
-    fn draw_selection_highlight(f: &mut Frame, inner: Rect, selected: Position, config: &LayoutConfig) {
+    fn draw_selection_highlight(
+        f: &mut Frame,
+        inner: Rect,
+        selected: Position,
+        config: &LayoutConfig,
+    ) {
         let (px, py) = config.cell_pos(selected.x, selected.y);
         let px = inner.x + px;
         let py = inner.y + py;
@@ -612,15 +726,29 @@ impl UI {
 
         f.render_widget(
             Paragraph::new("")
-                .block(Block::default().borders(BORDER_ALL).border_style(
-                    Style::default().fg(C_SELECTION).add_modifier(Modifier::BOLD)
-                ))
+                .block(
+                    Block::default().borders(BORDER_ALL).border_style(
+                        Style::default()
+                            .fg(C_SELECTION)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                )
                 .style(Style::default().bg(C_SELECTION_BG)),
-            Rect { x: px, y: py, width: w, height: 1 },
+            Rect {
+                x: px,
+                y: py,
+                width: w,
+                height: 1,
+            },
         );
     }
 
-    pub fn draw_game_over_popup(f: &mut Frame, area: Rect, state: GameState, config: &LayoutConfig) {
+    pub fn draw_game_over_popup(
+        f: &mut Frame,
+        area: Rect,
+        state: GameState,
+        config: &LayoutConfig,
+    ) {
         let popup_area = Self::centered_rect(config.popup_width, config.popup_height, area);
 
         let (text, color) = match state {
@@ -632,13 +760,22 @@ impl UI {
 
         let lines = vec![
             Line::from(""),
-            Line::from(vec![Span::styled(text, Style::default().fg(color).add_modifier(Modifier::BOLD))]),
+            Line::from(vec![Span::styled(
+                text,
+                Style::default().fg(color).add_modifier(Modifier::BOLD),
+            )]),
             Line::from(""),
             Line::from(""),
             Line::from(vec![
-                Span::styled(" q ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    " q ",
+                    Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(": 退出游戏    "),
-                Span::styled(" r ", Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    " r ",
+                    Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(": 重新开始"),
             ]),
             Line::from(""),
@@ -650,7 +787,7 @@ impl UI {
                 .block(
                     Block::default()
                         .borders(BORDER_ALL)
-                        .border_style(Style::default().fg(color).add_modifier(Modifier::BOLD))
+                        .border_style(Style::default().fg(color).add_modifier(Modifier::BOLD)),
                 )
                 .alignment(Alignment::Center),
             popup_area,

@@ -1,6 +1,6 @@
 use cn_chess_tui::game::Game;
-use cn_chess_tui::ui::UI;
 use cn_chess_tui::types::Position;
+use cn_chess_tui::ui::UI;
 use insta::assert_snapshot;
 use ratatui::{backend::TestBackend, Terminal};
 
@@ -112,7 +112,7 @@ fn test_after_first_move() {
 
     // Make a standard opening move: Red's left cannon advances
     let from = Position::from_xy(1, 7); // Red cannon starting position
-    let to = Position::from_xy(4, 7);   // Move toward center
+    let to = Position::from_xy(4, 7); // Move toward center
 
     if let Err(e) = game.make_move(from, to) {
         panic!("Failed to make move: {:?}", e);

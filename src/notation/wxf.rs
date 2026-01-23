@@ -3,8 +3,7 @@
 //! Format: "C2.5" or "H2+3" (piece letter + file + direction + destination)
 //!
 //! In WXF notation:
-//! - Piece letters: K (King/General), R (Rook/Chariot), H (Horse),
-//!                 E (Elephant), A (Advisor), C (Cannon), P (Pawn/Soldier)
+//! - Piece letters: K (King/General), R (Rook/Chariot), H (Horse), E (Elephant), A (Advisor), C (Cannon), P (Pawn/Soldier)
 //! - Files are numbered 1-9 from each player's perspective
 //! - Red: files numbered right-to-left (from Red's view)
 //! - Black: files numbered left-to-right (from Red's view)
@@ -198,7 +197,7 @@ pub fn parse_wxf_move(s: &str) -> Option<(PieceType, usize, MovementDirection, u
     // Extract from_file (between piece letter and direction)
     let from_file_str: String = chars[1..dir_idx].iter().collect();
     let from_file: usize = from_file_str.parse().ok()?;
-    if from_file < 1 || from_file > 9 {
+    if !(1..=9).contains(&from_file) {
         return None;
     }
 
@@ -209,7 +208,7 @@ pub fn parse_wxf_move(s: &str) -> Option<(PieceType, usize, MovementDirection, u
     // Extract destination (after direction)
     let dest_str: String = chars[dir_idx + 1..].iter().collect();
     let destination: usize = dest_str.parse().ok()?;
-    if destination < 1 || destination > 9 {
+    if !(1..=9).contains(&destination) {
         return None;
     }
 

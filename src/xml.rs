@@ -210,7 +210,7 @@ pub fn xml_to_pgn(xml: &str) -> Option<PgnGame> {
                             "tags" => in_tags = false,
                             "moves" => in_moves = false,
                             "result" => {
-                                game.result = PgnGameResult::parse(&current_content.trim())
+                                game.result = PgnGameResult::parse(current_content.trim())
                                     .unwrap_or(PgnGameResult::Unknown);
                                 in_result = false;
                             }
@@ -218,7 +218,7 @@ pub fn xml_to_pgn(xml: &str) -> Option<PgnGame> {
                             _ => {
                                 // It's a closing tag for a specific tag or move
                                 if in_moves && tag_name == "move" {
-                                    game.add_move(unescape_xml(&current_content.trim()));
+                                    game.add_move(unescape_xml(current_content.trim()));
                                 } else if in_tags && !current_tag_name.is_empty() {
                                     game.set_tag(current_tag_name.clone(), unescape_xml(&current_content));
                                 }
@@ -281,11 +281,7 @@ pub fn xml_to_pgn(xml: &str) -> Option<PgnGame> {
             }
             _ => {
                 // Content character
-                if in_tags && !current_tag_name.is_empty() {
-                    current_content.push(c);
-                } else if in_moves {
-                    current_content.push(c);
-                } else if in_result {
+                if in_tags && !current_tag_name.is_empty() || in_moves || in_result {
                     current_content.push(c);
                 }
             }

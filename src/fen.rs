@@ -9,8 +9,8 @@
 //! - Upper case: Red (R=车, N=马, B=相/象, A=仕/士, K=帅, C=炮, P=兵)
 //! - Lower case: Black (r=车, n=马, b=相/象, a=仕/士, k=将, c=炮, p=卒)
 
-use crate::types::{Color, Piece, PieceType, Position};
 use crate::board::Board;
+use crate::types::{Color, Piece, PieceType, Position};
 use std::collections::HashMap;
 
 /// Errors that can occur during FEN parsing
@@ -148,7 +148,7 @@ pub fn fen_to_board(fen: &str) -> Result<(Board, Color), FenError> {
 
     // Parse turn
     let turn = match parts[1] {
-        "w" | "W" | "r" | "R" => Color::Red,  // Accept w, W, r, R as Red
+        "w" | "W" | "r" | "R" => Color::Red, // Accept w, W, r, R as Red
         "b" | "B" => Color::Black,
         _ => return Err(FenError::InvalidTurn),
     };
@@ -176,7 +176,12 @@ pub fn fen_to_board(fen: &str) -> Result<(Board, Color), FenError> {
 /// - turn: Current turn (Red or Black)
 /// - half_move_count: Number of half-moves since last capture/pawn move
 /// - full_move_count: Current full move number
-pub fn board_to_fen(board: &Board, turn: Color, half_move_count: u32, full_move_count: u32) -> String {
+pub fn board_to_fen(
+    board: &Board,
+    turn: Color,
+    half_move_count: u32,
+    full_move_count: u32,
+) -> String {
     let mut fen_parts = Vec::new();
 
     // Build board section
@@ -214,7 +219,11 @@ pub fn board_to_fen(board: &Board, turn: Color, half_move_count: u32, full_move_
     fen_parts.push(rank_strings.join("/"));
 
     // Turn (always use 'w' for Red, 'b' for Black)
-    fen_parts.push(if turn == Color::Red { "w".to_string() } else { "b".to_string() });
+    fen_parts.push(if turn == Color::Red {
+        "w".to_string()
+    } else {
+        "b".to_string()
+    });
 
     // Chinese Chess doesn't have castling or en passant
     fen_parts.push("-".to_string());
@@ -257,12 +266,30 @@ mod tests {
 
     #[test]
     fn test_parse_piece_characters() {
-        assert_eq!(parse_piece('K'), Some(Piece::new(PieceType::General, Color::Red)));
-        assert_eq!(parse_piece('k'), Some(Piece::new(PieceType::General, Color::Black)));
-        assert_eq!(parse_piece('R'), Some(Piece::new(PieceType::Chariot, Color::Red)));
-        assert_eq!(parse_piece('r'), Some(Piece::new(PieceType::Chariot, Color::Black)));
-        assert_eq!(parse_piece('C'), Some(Piece::new(PieceType::Cannon, Color::Red)));
-        assert_eq!(parse_piece('c'), Some(Piece::new(PieceType::Cannon, Color::Black)));
+        assert_eq!(
+            parse_piece('K'),
+            Some(Piece::new(PieceType::General, Color::Red))
+        );
+        assert_eq!(
+            parse_piece('k'),
+            Some(Piece::new(PieceType::General, Color::Black))
+        );
+        assert_eq!(
+            parse_piece('R'),
+            Some(Piece::new(PieceType::Chariot, Color::Red))
+        );
+        assert_eq!(
+            parse_piece('r'),
+            Some(Piece::new(PieceType::Chariot, Color::Black))
+        );
+        assert_eq!(
+            parse_piece('C'),
+            Some(Piece::new(PieceType::Cannon, Color::Red))
+        );
+        assert_eq!(
+            parse_piece('c'),
+            Some(Piece::new(PieceType::Cannon, Color::Black))
+        );
         assert_eq!(parse_piece('X'), None);
     }
 
@@ -285,7 +312,10 @@ mod tests {
         let fen = board_to_fen(&board, Color::Red, 0, 1);
 
         // The FEN should match the standard initial position
-        assert_eq!(fen, "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1");
+        assert_eq!(
+            fen,
+            "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+        );
     }
 
     #[test]
@@ -313,15 +343,27 @@ mod tests {
     fn test_board_to_fen_custom_position() {
         // Create a simple position: just the two generals
         let mut pieces = HashMap::new();
-        pieces.insert(Position::from_xy(4, 9), Piece::new(PieceType::General, Color::Red));
-        pieces.insert(Position::from_xy(4, 0), Piece::new(PieceType::General, Color::Black));
+        pieces.insert(
+            Position::from_xy(4, 9),
+            Piece::new(PieceType::General, Color::Red),
+        );
+        pieces.insert(
+            Position::from_xy(4, 0),
+            Piece::new(PieceType::General, Color::Black),
+        );
 
         let board = Board::from_pieces(pieces);
         let fen = board_to_fen(&board, Color::Red, 0, 1);
 
         // Expected: 9/9/9/9/9/9/9/9/9/4K4 w - - 0 1
         // But we need to check if it matches the correct format
-        assert!(fen.contains("4K4"), "FEN should contain '4K4' for red general");
-        assert!(fen.contains("4k4"), "FEN should contain '4k4' for black general");
+        assert!(
+            fen.contains("4K4"),
+            "FEN should contain '4K4' for red general"
+        );
+        assert!(
+            fen.contains("4k4"),
+            "FEN should contain '4k4' for black general"
+        );
     }
 }

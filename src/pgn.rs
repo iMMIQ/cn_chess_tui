@@ -388,9 +388,9 @@ pub fn split_quoted(text: &str, delimiter: char) -> Option<Vec<&str>> {
     let mut parts = Vec::new();
     let mut start = 0;
     let mut in_quotes = false;
-    let mut chars = text.chars().enumerate();
+    let chars = text.chars().enumerate();
 
-    while let Some((i, c)) = chars.next() {
+    for (i, c) in chars {
         if c == '"' {
             in_quotes = !in_quotes;
         } else if c == delimiter && !in_quotes {

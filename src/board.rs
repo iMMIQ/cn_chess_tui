@@ -262,7 +262,8 @@ impl Board {
             (from.x as isize, from.y as isize - dy.signum())
         };
 
-        if (0..9).contains(&block_x) && (0..10).contains(&block_y)
+        if (0..9).contains(&block_x)
+            && (0..10).contains(&block_y)
             && !self.is_empty_xy(block_x as usize, block_y as usize)
         {
             return false;
@@ -312,7 +313,7 @@ impl Board {
 
         // Check if move is forward
         let forward = match color {
-            Color::Red => to.y < from.y, // Red moves up (decreasing Y)
+            Color::Red => to.y < from.y,   // Red moves up (decreasing Y)
             Color::Black => to.y > from.y, // Black moves down (increasing Y)
         };
 

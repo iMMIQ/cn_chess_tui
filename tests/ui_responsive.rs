@@ -72,7 +72,12 @@ fn test_draw_with_selection() {
     let _ = terminal.draw(|f| {
         let game = Game::new();
         // Select a piece (e.g., Red Cannon at (1,7))
-        UI::draw(f, &game, Position::from_xy(1, 7), Some(Position::from_xy(1, 7)));
+        UI::draw(
+            f,
+            &game,
+            Position::from_xy(1, 7),
+            Some(Position::from_xy(1, 7)),
+        );
     });
 }
 
@@ -225,10 +230,10 @@ fn test_draw_for_both_colors_turn() {
 #[test]
 fn test_various_terminal_sizes() {
     let sizes = vec![
-        (22, 22), // Minimum
-        (30, 22), // Small
-        (40, 24), // Minimum recommended
-        (80, 25), // Standard
+        (22, 22),  // Minimum
+        (30, 22),  // Small
+        (40, 24),  // Minimum recommended
+        (80, 25),  // Standard
         (100, 30), // Large
         (120, 40), // Extra large
     ];

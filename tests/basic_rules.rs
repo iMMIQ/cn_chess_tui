@@ -31,7 +31,10 @@ fn test_initial_position_setup() {
     // Black general should be at (4, 0)
     let black_general_pos = Position::from_xy(4, 0);
     let black_general = board.get(black_general_pos);
-    assert!(black_general.is_some(), "Black general should exist at (4, 0)");
+    assert!(
+        black_general.is_some(),
+        "Black general should exist at (4, 0)"
+    );
     assert_eq!(
         black_general.unwrap().piece_type,
         PieceType::General,
