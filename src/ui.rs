@@ -331,8 +331,8 @@ impl UI {
         selected: Option<Position>,
         config: &LayoutConfig,
     ) {
-        let board_width = (BOARD_COLS as u16) * config.cell_width + 2;
-        let board_height = (BOARD_ROWS as u16) * config.cell_height + 2;
+        let board_width = ((BOARD_COLS as u16) * config.cell_width + 2).min(area.width);
+        let board_height = ((BOARD_ROWS as u16) * config.cell_height + 2).min(area.height);
         let board_area = Self::centered_rect(board_width, board_height, area);
 
         let block = Block::default()
@@ -551,27 +551,36 @@ impl UI {
         let grid_style = Style::default().fg(C_GRID);
         let corner_style = Style::default().fg(C_SECONDARY);
 
-        for y in 0..BOARD_ROWS {
-            for x in 0..BOARD_COLS {
+        // Calculate how many rows and cols fit in the available area
+        let max_rows = (area.height / config.cell_height).min(BOARD_ROWS as u16) as usize;
+        let max_cols = (area.width / config.cell_width).min(BOARD_COLS as u16) as usize;
+
+        for y in 0..max_rows {
+            for x in 0..max_cols {
                 let (px, py) = config.cell_pos(x, y);
                 let px = area.x + px;
                 let py = area.y + py;
 
+                // Skip if this position is outside the area bounds
+                if px >= area.x + area.width || py >= area.y + area.height {
+                    continue;
+                }
+
                 let (c, is_corner) = if x == 0 && y == 0 {
                     ("┌", true)
-                } else if x == BOARD_COLS - 1 && y == 0 {
+                } else if x == max_cols - 1 && y == 0 && max_cols == BOARD_COLS {
                     ("┐", true)
-                } else if x == 0 && y == BOARD_ROWS - 1 {
+                } else if x == 0 && y == max_rows - 1 && max_rows == BOARD_ROWS {
                     ("└", true)
-                } else if x == BOARD_COLS - 1 && y == BOARD_ROWS - 1 {
+                } else if x == max_cols - 1 && y == max_rows - 1 && max_cols == BOARD_COLS && max_rows == BOARD_ROWS {
                     ("┘", true)
                 } else if x == 0 {
                     ("├", false)
-                } else if x == BOARD_COLS - 1 {
+                } else if x == max_cols - 1 && max_cols == BOARD_COLS {
                     ("┤", false)
                 } else if y == 0 {
                     ("┬", false)
-                } else if y == BOARD_ROWS - 1 {
+                } else if y == max_rows - 1 && max_rows == BOARD_ROWS {
                     ("┴", false)
                 } else {
                     ("┼", false)
@@ -589,7 +598,7 @@ impl UI {
                 );
 
                 // Horizontal lines
-                if x < BOARD_COLS - 1 && config.cell_width > 1 {
+                if x < max_cols - 1 && config.cell_width > 1 {
                     for i in 1..config.cell_width {
                         let hx = px + i;
                         f.render_widget(
@@ -606,8 +615,8 @@ impl UI {
             }
 
             // Vertical lines (skip river area)
-            if y < BOARD_ROWS - 1 {
-                for x in 0..BOARD_COLS {
+            if y < max_rows - 1 {
+                for x in 0..max_cols {
                     let (px, py) = config.cell_pos(x, y);
                     let px = area.x + px;
                     let py = area.y + py + 1;
@@ -615,6 +624,11 @@ impl UI {
                     if y == 4 {
                         continue;
                     } // Skip river
+
+                    // Skip if this position is outside the area bounds
+                    if px >= area.x + area.width || py >= area.y + area.height {
+                        continue;
+                    }
 
                     f.render_widget(
                         Paragraph::new(Span::styled("│", grid_style)),
@@ -633,13 +647,18 @@ impl UI {
     fn draw_river(f: &mut Frame, area: Rect, config: &LayoutConfig) {
         let river_y = area.y + config.cell_height * 5 - 1;
 
+        // Skip if river is outside area bounds
+        if river_y >= area.y + area.height {
+            return;
+        }
+
         let chu = " 楚河";
         let han = "汉界";
 
         let river_style = Style::default().fg(C_RIVER).add_modifier(Modifier::BOLD);
 
-        let left_w = 6 * config.cell_width;
-        let right_w = 6 * config.cell_width;
+        let left_w = (6 * config.cell_width).min(area.width);
+        let right_w = (6 * config.cell_width).min(area.width);
 
         f.render_widget(
             Paragraph::new(chu)
@@ -667,10 +686,23 @@ impl UI {
     }
 
     fn draw_pieces(f: &mut Frame, area: Rect, game: &Game, config: &LayoutConfig) {
+        let max_rows = (area.height / config.cell_height).min(BOARD_ROWS as u16) as usize;
+        let max_cols = (area.width / config.cell_width).min(BOARD_COLS as u16) as usize;
+
         for (pos, piece) in game.board().pieces() {
+            // Skip pieces outside the visible grid
+            if pos.x >= max_cols || pos.y >= max_rows {
+                continue;
+            }
+
             let (px, py) = config.cell_pos(pos.x, pos.y);
             let px = area.x + px;
             let py = area.y + py;
+
+            // Skip if this position is outside the area bounds
+            if px >= area.x + area.width || py >= area.y + area.height {
+                continue;
+            }
 
             let fg = match piece.color {
                 Color::Red => C_RED_PIECE,
@@ -700,6 +732,11 @@ impl UI {
         let py = inner.y + py;
         let w = config.cell_width.min(3);
 
+        // Skip if outside area bounds
+        if px >= inner.x + inner.width || py >= inner.y + inner.height {
+            return;
+        }
+
         f.render_widget(
             Block::default()
                 .borders(BORDER_ALL)
@@ -723,6 +760,11 @@ impl UI {
         let px = inner.x + px;
         let py = inner.y + py;
         let w = config.cell_width.min(3);
+
+        // Skip if outside area bounds
+        if px >= inner.x + inner.width || py >= inner.y + inner.height {
+            return;
+        }
 
         f.render_widget(
             Paragraph::new("")
