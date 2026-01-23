@@ -13,6 +13,7 @@ use crate::fen::FenError;
 use crate::game::{Game, GameController, AiMode};
 use crate::types::Position;
 use crate::ui::AiMenuState;
+use crate::ucci::Info;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -65,6 +66,7 @@ struct App {
     running: bool,
     ai_menu_active: bool,
     ai_menu_state: AiMenuState,
+    thinking_info: Vec<Info>,
 }
 
 impl App {
@@ -78,6 +80,7 @@ impl App {
             running: true,
             ai_menu_active: false,
             ai_menu_state: AiMenuState::default(),
+            thinking_info: Vec::new(),
         }
     }
 
@@ -91,6 +94,7 @@ impl App {
             running: true,
             ai_menu_active: false,
             ai_menu_state: AiMenuState::default(),
+            thinking_info: Vec::new(),
         })
     }
 
@@ -106,6 +110,7 @@ impl App {
             running: true,
             ai_menu_active: false,
             ai_menu_state: AiMenuState::default(),
+            thinking_info: Vec::new(),
         })
     }
 
@@ -179,6 +184,7 @@ impl App {
             running: true,
             ai_menu_active: false,
             ai_menu_state: AiMenuState::default(),
+            thinking_info: Vec::new(),
         })
     }
 
@@ -345,6 +351,24 @@ impl App {
             );
         }
 
+        // Draw status bar at bottom
+        let size = f.area();
+        if size.height > 3 {
+            let status_bar_area = Rect {
+                x: 0,
+                y: size.height - 1,
+                width: size.width,
+                height: 1,
+            };
+            ui::UI::draw_status_bar(
+                f,
+                status_bar_area,
+                self.controller.ai_mode(),
+                self.controller.is_engine_thinking(),
+                &self.controller.ai_config().engine_path,
+            );
+        }
+
         // Draw message overlay if active
         if let Some(ref msg) = self.message {
             if self.message_time.elapsed() < Duration::from_secs(2) {
@@ -430,6 +454,11 @@ fn run_game(app: &mut App) -> io::Result<()> {
             if let Event::Key(key) = event::read()? {
                 app.handle_key(key.code);
             }
+        }
+
+        // Check for engine responses
+        if let Ok(Some(mv)) = app.controller.check_engine_response() {
+            app.show_message(format!("AI played: {:?}", mv));
         }
 
         if last_tick.elapsed() >= tick_rate {

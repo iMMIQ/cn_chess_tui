@@ -1,5 +1,6 @@
 use crate::game::{Game, GameState, AiMode};
 use crate::types::{move_to_simple_notation, Color, Position};
+use std::path::PathBuf;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Color as RColor, Modifier, Style},
@@ -928,5 +929,77 @@ impl UI {
 
         f.render_widget(Clear, menu_area);
         f.render_widget(paragraph, menu_area);
+    }
+
+    /// Draw status bar showing AI mode and engine status
+    pub fn draw_status_bar(
+        f: &mut Frame,
+        area: Rect,
+        ai_mode: AiMode,
+        engine_thinking: bool,
+        engine_path: &Option<PathBuf>,
+    ) {
+        let mode_text = match ai_mode {
+            AiMode::Off => "PvP".to_string(),
+            AiMode::PlaysRed => "AI(Red)".to_string(),
+            AiMode::PlaysBlack => "AI(Black)".to_string(),
+            AiMode::PlaysBoth => "AI vs AI".to_string(),
+        };
+
+        let engine_name = engine_path
+            .as_ref()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+            .unwrap_or("No engine");
+
+        let status = if engine_thinking {
+            format!("Mode: {} | AI thinking... | Engine: {}", mode_text, engine_name)
+        } else {
+            format!("Mode: {} | Engine: {}", mode_text, engine_name)
+        };
+
+        let paragraph = Paragraph::new(status)
+            .block(
+                Block::default()
+                    .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
+                    .style(Style::default().bg(RColor::Black)),
+            )
+            .alignment(Alignment::Center);
+
+        f.render_widget(paragraph, area);
+    }
+
+    /// Draw thinking information panel
+    pub fn draw_thinking_panel(
+        f: &mut Frame,
+        area: Rect,
+        thinking_enabled: bool,
+        engine_thinking: bool,
+    ) {
+        if !thinking_enabled {
+            let paragraph = Paragraph::new("Thinking display disabled")
+                .block(Block::default().borders(BORDER_ALL).title(" Thinking "));
+            f.render_widget(paragraph, area);
+            return;
+        }
+
+        if !engine_thinking {
+            let paragraph = Paragraph::new("Engine not thinking")
+                .block(Block::default().borders(BORDER_ALL).title(" Thinking "));
+            f.render_widget(paragraph, area);
+            return;
+        }
+
+        let lines = vec![
+            Line::from("Engine is calculating..."),
+            Line::from(""),
+            Line::from("Depth: searching..."),
+            Line::from("Score: evaluating..."),
+        ];
+
+        let paragraph = Paragraph::new(lines)
+            .block(Block::default().borders(BORDER_ALL).title(" Thinking "));
+
+        f.render_widget(paragraph, area);
     }
 }
