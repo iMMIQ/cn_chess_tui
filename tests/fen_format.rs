@@ -232,7 +232,8 @@ fn test_export_fen_with_moves_no_captures() {
 
     let mut game = Game::new();
     // Red soldier from (0, 6) moves forward to (0, 5)
-    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap();
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5))
+        .unwrap();
 
     let output = fen::game_to_fen_with_moves(&game);
 
@@ -248,13 +249,17 @@ fn test_export_fen_with_moves_with_capture() {
     let mut game = Game::new();
     // Create a capture scenario with moves after the capture
     // Red soldier moves forward
-    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap();
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5))
+        .unwrap();
     // Black soldier moves forward
-    game.make_move(Position::from_xy(2, 3), Position::from_xy(2, 4)).unwrap();
+    game.make_move(Position::from_xy(2, 3), Position::from_xy(2, 4))
+        .unwrap();
     // Red soldier captures black soldier
-    game.make_move(Position::from_xy(0, 5), Position::from_xy(0, 4)).unwrap();
+    game.make_move(Position::from_xy(0, 5), Position::from_xy(0, 4))
+        .unwrap();
     // Another move after the capture (black soldier moves)
-    game.make_move(Position::from_xy(2, 4), Position::from_xy(2, 5)).unwrap();
+    game.make_move(Position::from_xy(2, 4), Position::from_xy(2, 5))
+        .unwrap();
 
     let output = fen::game_to_fen_with_moves(&game);
 
@@ -276,9 +281,11 @@ fn test_fen_with_moves_roundtrip() {
 
     let mut game = Game::new();
     // Red soldier moves forward
-    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap();
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5))
+        .unwrap();
     // Black soldier moves forward
-    game.make_move(Position::from_xy(0, 3), Position::from_xy(0, 4)).unwrap();
+    game.make_move(Position::from_xy(0, 3), Position::from_xy(0, 4))
+        .unwrap();
 
     // Export
     let exported = fen::game_to_fen_with_moves(&game);
@@ -301,7 +308,8 @@ fn test_game_from_fen_with_moves_method() {
 #[test]
 fn test_game_to_fen_with_moves_method() {
     let mut game = Game::new();
-    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap();
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5))
+        .unwrap();
 
     let output = game.to_fen_with_moves();
     assert!(output.contains("moves"));
@@ -331,28 +339,38 @@ fn test_export_fen_with_moves_multiple_captures() {
 
     // Make multiple moves, including captures
     // First, move pieces so they can meet
-    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap(); // Red soldier forward
-    game.make_move(Position::from_xy(0, 3), Position::from_xy(0, 4)).unwrap(); // Black soldier forward
-    game.make_move(Position::from_xy(2, 6), Position::from_xy(2, 5)).unwrap(); // Red soldier forward
-    game.make_move(Position::from_xy(2, 3), Position::from_xy(2, 4)).unwrap(); // Black soldier forward
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5))
+        .unwrap(); // Red soldier forward
+    game.make_move(Position::from_xy(0, 3), Position::from_xy(0, 4))
+        .unwrap(); // Black soldier forward
+    game.make_move(Position::from_xy(2, 6), Position::from_xy(2, 5))
+        .unwrap(); // Red soldier forward
+    game.make_move(Position::from_xy(2, 3), Position::from_xy(2, 4))
+        .unwrap(); // Black soldier forward
 
     // First capture - Red soldier captures black soldier at (0,4)
-    game.make_move(Position::from_xy(0, 5), Position::from_xy(0, 4)).unwrap();
+    game.make_move(Position::from_xy(0, 5), Position::from_xy(0, 4))
+        .unwrap();
 
     // Black moves (non-capture)
-    game.make_move(Position::from_xy(4, 3), Position::from_xy(4, 4)).unwrap(); // Black soldier
+    game.make_move(Position::from_xy(4, 3), Position::from_xy(4, 4))
+        .unwrap(); // Black soldier
 
     // Red moves (non-capture)
-    game.make_move(Position::from_xy(4, 6), Position::from_xy(4, 5)).unwrap(); // Red soldier
+    game.make_move(Position::from_xy(4, 6), Position::from_xy(4, 5))
+        .unwrap(); // Red soldier
 
     // Black moves (non-capture)
-    game.make_move(Position::from_xy(6, 3), Position::from_xy(6, 4)).unwrap(); // Black soldier
+    game.make_move(Position::from_xy(6, 3), Position::from_xy(6, 4))
+        .unwrap(); // Black soldier
 
     // Second capture - Red soldier captures black soldier at (4,4)
-    game.make_move(Position::from_xy(4, 5), Position::from_xy(4, 4)).unwrap();
+    game.make_move(Position::from_xy(4, 5), Position::from_xy(4, 4))
+        .unwrap();
 
     // Another move after the capture (Black's turn)
-    game.make_move(Position::from_xy(8, 3), Position::from_xy(8, 4)).unwrap(); // Black soldier
+    game.make_move(Position::from_xy(8, 3), Position::from_xy(8, 4))
+        .unwrap(); // Black soldier
 
     let exported = game.to_fen_with_moves();
 

@@ -8,7 +8,8 @@ use cn_chess_tui::ucci::UcciCommand;
 fn test_ucci_position_with_moves() {
     let mut game = Game::new();
     // Make a simple move - advance red soldier from (0,6) to (0,5)
-    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5)).unwrap();
+    game.make_move(Position::from_xy(0, 6), Position::from_xy(0, 5))
+        .unwrap();
 
     let fen_with_moves = game.to_fen_with_moves();
 
@@ -24,7 +25,10 @@ fn test_ucci_position_with_moves() {
     assert!(serialized.contains("moves"));
 
     // Verify the exact move notation "a6a5" is in the serialized output
-    assert!(serialized.contains("a6a5"), "Serialized command should contain move 'a6a5'");
+    assert!(
+        serialized.contains("a6a5"),
+        "Serialized command should contain move 'a6a5'"
+    );
 
     // Verify format is: "position fen <fen> moves <move1> <move2> ..."
     let parts: Vec<&str> = serialized.split(' ').collect();
@@ -39,7 +43,10 @@ fn test_ucci_position_with_moves() {
     assert!(moves_index + 1 < parts.len());
 
     // Verify the FEN in the serialized command matches the game's FEN
-    assert!(serialized.contains(&game.to_fen()), "Serialized command should contain the game's FEN");
+    assert!(
+        serialized.contains(&game.to_fen()),
+        "Serialized command should contain the game's FEN"
+    );
 
     println!("FEN with moves: {}", fen_with_moves);
     println!("Serialized command: {}", serialized);
