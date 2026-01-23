@@ -6,7 +6,7 @@ use crate::pgn::{PgnGame, PgnGameResult};
 use crate::types::{Color, Position};
 use crate::ucci::UcciClient;
 use std::fmt::{self, Display, Formatter};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Result of a completed game
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -489,6 +489,30 @@ impl GameController {
         self.ai_config = config;
     }
 
+    /// Initialize AI engine with given path
+    pub fn init_engine(&mut self, engine_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        // Check if path exists
+        if !Path::new(engine_path).exists() {
+            return Err("Engine path does not exist".into());
+        }
+
+        // Create client
+        let mut client = UcciClient::new(engine_path)?;
+
+        // Initialize engine
+        client.initialize()?;
+
+        self.ai_client = Some(client);
+        self.ai_config.engine_path = Some(PathBuf::from(engine_path));
+
+        Ok(())
+    }
+
+    /// Check if engine is initialized
+    pub fn has_engine(&self) -> bool {
+        self.ai_client.is_some()
+    }
+
     /// Make a move as a human player (not AI)
     pub fn human_move(&mut self, from: Position, to: Position) -> Result<(), MoveError> {
         // If AI is thinking, don't allow human moves
@@ -521,14 +545,67 @@ impl GameController {
         }
     }
 
-    /// Trigger AI to make a move (will be implemented in Task 3)
+    /// Trigger AI to make a move
     pub fn trigger_ai_move(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if !self.should_ai_move() {
             return Ok(());
         }
 
-        // Stub: will be implemented in Task 3 with engine integration
+        let client = self.ai_client.as_mut()
+            .ok_or("AI engine not initialized")?;
+
+        // Sync engine with current position
+        let fen = self.game.to_fen();
+        let moves = self.game.get_moves_with_iccs();
+        client.set_position(&fen, &moves)?;
+
+        // Start depth search (depth 10)
+        client.go_depth(10)?;
+
         self.engine_thinking = true;
         Ok(())
+    }
+
+    /// Check if engine has responded, apply move if ready
+    pub fn check_engine_response(&mut self) -> Result<Option<(Position, Position)>, Box<dyn std::error::Error>> {
+        if !self.engine_thinking {
+            return Ok(None);
+        }
+
+        let client = self.ai_client.as_mut()
+            .ok_or("AI engine not initialized")?;
+
+        // Check if engine is ready
+        if !client.is_ready()? {
+            return Ok(None);
+        }
+
+        // Get the move
+        let result = client.stop()?;
+        let mv = match result {
+            crate::ucci::MoveResult::Move(mv_str, _) => {
+                match crate::notation::parse_iccs_move(&mv_str) {
+                    Ok(pos) => pos,
+                    Err(_) => {
+                        self.engine_thinking = false;
+                        return Ok(None);
+                    }
+                }
+            }
+            crate::ucci::MoveResult::NoMove => {
+                self.engine_thinking = false;
+                return Ok(None);
+            }
+            crate::ucci::MoveResult::Draw | crate::ucci::MoveResult::Resign => {
+                self.engine_thinking = false;
+                return Ok(None);
+            }
+        };
+
+        // Apply the move to the game
+        self.game.make_move(mv.0, mv.1)?;
+
+        self.engine_thinking = false;
+        Ok(Some(mv))
     }
 }
