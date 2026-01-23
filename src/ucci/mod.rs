@@ -10,8 +10,5 @@ pub mod protocol;
 pub mod serializer;
 pub mod state;
 
-pub use client::{EngineInfo, Info, MoveResult, UcciClient};
-pub use engine::EngineError;
-pub use parser::ParseError;
-pub use protocol::{EngineState, GoMode, OptionType, UcciCommand, UcciResponse};
-pub use state::{StateError, UcciStateMachine};
+pub use client::{Info, MoveResult, UcciClient};
+pub use protocol::{GoMode, UcciCommand, UcciResponse};

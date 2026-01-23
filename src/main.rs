@@ -10,10 +10,10 @@ mod ucci;
 mod ui;
 
 use crate::fen::FenError;
-use crate::game::{Game, GameController, AiMode};
+use crate::game::{AiMode, Game, GameController};
 use crate::types::Position;
-use crate::ui::AiMenuState;
 use crate::ucci::Info;
+use crate::ui::AiMenuState;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -68,7 +68,7 @@ struct App {
     running: bool,
     ai_menu_active: bool,
     ai_menu_state: AiMenuState,
-    thinking_info: Vec<Info>,
+    _thinking_info: Vec<Info>,
 }
 
 impl App {
@@ -82,7 +82,7 @@ impl App {
             running: true,
             ai_menu_active: false,
             ai_menu_state: AiMenuState::default(),
-            thinking_info: Vec::new(),
+            _thinking_info: Vec::new(),
         }
     }
 
@@ -96,7 +96,7 @@ impl App {
             running: true,
             ai_menu_active: false,
             ai_menu_state: AiMenuState::default(),
-            thinking_info: Vec::new(),
+            _thinking_info: Vec::new(),
         })
     }
 
@@ -112,7 +112,7 @@ impl App {
             running: true,
             ai_menu_active: false,
             ai_menu_state: AiMenuState::default(),
-            thinking_info: Vec::new(),
+            _thinking_info: Vec::new(),
         })
     }
 
@@ -186,7 +186,7 @@ impl App {
             running: true,
             ai_menu_active: false,
             ai_menu_state: AiMenuState::default(),
-            thinking_info: Vec::new(),
+            _thinking_info: Vec::new(),
         })
     }
 
@@ -229,6 +229,15 @@ impl App {
                     self.ai_menu_active = true;
                     self.ai_menu_state = AiMenuState::default();
                     self.ai_menu_state.show_thinking = self.controller.ai_config().show_thinking;
+                }
+            }
+            KeyCode::Char('t') | KeyCode::Char('T') => {
+                if !self.ai_menu_active {
+                    let mut config = self.controller.ai_config().clone();
+                    config.show_thinking = !config.show_thinking;
+                    let status = if config.show_thinking { "on" } else { "off" };
+                    self.controller.set_ai_config(config);
+                    self.show_message(format!("Thinking display: {}", status));
                 }
             }
             KeyCode::Char('r') => {

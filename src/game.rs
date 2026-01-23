@@ -47,26 +47,17 @@ impl Display for GameState {
 /// AI mode for game controller
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AiMode {
-    Off,           // Player vs Player
-    PlaysRed,      // AI plays Red
-    PlaysBlack,    // AI plays Black
-    PlaysBoth,     // AI vs AI (spectator mode)
+    Off,        // Player vs Player
+    PlaysRed,   // AI plays Red
+    PlaysBlack, // AI plays Black
+    PlaysBoth,  // AI vs AI (spectator mode)
 }
 
 /// AI configuration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct AiConfig {
     pub engine_path: Option<PathBuf>,
     pub show_thinking: bool,
-}
-
-impl Default for AiConfig {
-    fn default() -> Self {
-        Self {
-            engine_path: None,
-            show_thinking: false,
-        }
-    }
 }
 
 /// A single move record with from and to positions
@@ -131,6 +122,12 @@ pub struct GameController {
     ai_client: Option<UcciClient>,
     ai_config: AiConfig,
     engine_thinking: bool,
+}
+
+impl Default for GameController {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Game {
@@ -562,8 +559,7 @@ impl GameController {
             return Ok(());
         }
 
-        let client = self.ai_client.as_mut()
-            .ok_or("AI engine not initialized")?;
+        let client = self.ai_client.as_mut().ok_or("AI engine not initialized")?;
 
         // Sync engine with current position
         let fen = self.game.to_fen();
@@ -578,13 +574,14 @@ impl GameController {
     }
 
     /// Check if engine has responded, apply move if ready
-    pub fn check_engine_response(&mut self) -> Result<Option<(Position, Position)>, Box<dyn std::error::Error>> {
+    pub fn check_engine_response(
+        &mut self,
+    ) -> Result<Option<(Position, Position)>, Box<dyn std::error::Error>> {
         if !self.engine_thinking {
             return Ok(None);
         }
 
-        let client = self.ai_client.as_mut()
-            .ok_or("AI engine not initialized")?;
+        let client = self.ai_client.as_mut().ok_or("AI engine not initialized")?;
 
         // Check if engine is ready
         if !client.is_ready()? {

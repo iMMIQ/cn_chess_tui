@@ -1,6 +1,5 @@
-use crate::game::{Game, GameState, AiMode};
+use crate::game::{AiMode, Game, GameState};
 use crate::types::{move_to_simple_notation, Color, Position};
-use std::path::PathBuf;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Color as RColor, Modifier, Style},
@@ -8,6 +7,7 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
+use std::path::PathBuf;
 
 // Base board dimensions (9x10 grid)
 const BOARD_COLS: usize = 9;
@@ -872,7 +872,7 @@ impl UI {
     pub fn draw_ai_menu(
         f: &mut Frame,
         current_mode: AiMode,
-        show_thinking: bool,
+        _show_thinking: bool,
         menu_state: &AiMenuState,
     ) {
         let size = f.area();
@@ -880,7 +880,7 @@ impl UI {
         let height = 11;
         let menu_area = Self::centered_rect(width, height, size);
 
-        let options = vec![
+        let options: [(&str, AiMode); 4] = [
             ("Off (Player vs Player)", AiMode::Off),
             ("AI plays Black", AiMode::PlaysBlack),
             ("AI plays Red", AiMode::PlaysRed),
@@ -906,7 +906,10 @@ impl UI {
                 Style::default().fg(C_SECONDARY)
             };
 
-            lines.push(Line::from(Span::styled(format!("{}{}", prefix, text), style)));
+            lines.push(Line::from(Span::styled(
+                format!("{}{}", prefix, text),
+                style,
+            )));
         }
 
         lines.push(Line::from(""));
@@ -953,7 +956,10 @@ impl UI {
             .unwrap_or("No engine");
 
         let status = if engine_thinking {
-            format!("Mode: {} | AI thinking... | Engine: {}", mode_text, engine_name)
+            format!(
+                "Mode: {} | AI thinking... | Engine: {}",
+                mode_text, engine_name
+            )
         } else {
             format!("Mode: {} | Engine: {}", mode_text, engine_name)
         };
@@ -997,9 +1003,27 @@ impl UI {
             Line::from("Score: evaluating..."),
         ];
 
-        let paragraph = Paragraph::new(lines)
-            .block(Block::default().borders(BORDER_ALL).title(" Thinking "));
+        let paragraph =
+            Paragraph::new(lines).block(Block::default().borders(BORDER_ALL).title(" Thinking "));
 
         f.render_widget(paragraph, area);
+    }
+
+    /// Draw error popup message
+    pub fn draw_error_popup(f: &mut Frame, message: &str) {
+        let size = f.area();
+        let popup_area = Self::centered_rect(40, 5, size);
+
+        let paragraph = Paragraph::new(message)
+            .block(
+                Block::default()
+                    .borders(BORDER_ALL)
+                    .border_style(Style::default().fg(RColor::Red))
+                    .title(" Error "),
+            )
+            .alignment(Alignment::Center);
+
+        f.render_widget(Clear, popup_area);
+        f.render_widget(paragraph, popup_area);
     }
 }
