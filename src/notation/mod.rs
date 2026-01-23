@@ -11,3 +11,6 @@ pub mod wxf;
 
 // Re-export Chinese notation types and functions
 pub use chinese::{move_to_chinese, move_to_chinese_with_context, piece_to_chinese, MovementDirection};
+
+// Re-export WXF notation functions
+pub use wxf::{direction_to_wxf, move_to_wxf, parse_wxf_move, piece_to_wxf_letter, wxf_letter_to_piece_type, wxf_symbol_to_direction};
