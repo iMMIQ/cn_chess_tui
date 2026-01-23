@@ -8,6 +8,7 @@ pub mod pgn;
 pub mod types;
 pub mod ui;
 pub mod xml;
+pub mod ucci;
 
 pub use board::Board;
 pub use fen::{board_to_fen, fen_to_board, FenError};
