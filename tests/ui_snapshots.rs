@@ -89,3 +89,44 @@ fn test_initial_position_large_terminal() {
     // insta automatically captures snapshot and compares to stored version
     assert_snapshot!(terminal.backend());
 }
+
+/// Test snapshot of game state after the first move.
+///
+/// This test verifies UI rendering after a standard opening move, ensuring:
+/// - Piece positions correctly reflect the move that was made
+/// - Turn indicator updates to show it's now Black's turn
+/// - Move count increments to 1
+/// - Board state is consistent with the game logic
+///
+/// The test makes a common opening move: Red's left cannon from (1, 7) to (4, 7),
+/// advancing toward the center of the board. This tests the UI's ability to:
+/// - Display pieces in non-starting positions
+/// - Show updated game state information
+/// - Maintain visual consistency after state changes
+///
+/// Uses an 80x24 terminal with cursor at (0, 0) and no selection to match
+/// the standard test behavior established in previous snapshot tests.
+#[test]
+fn test_after_first_move() {
+    let mut game = Game::new();
+
+    // Make a standard opening move: Red's left cannon advances
+    let from = Position::from_xy(1, 7); // Red cannon starting position
+    let to = Position::from_xy(4, 7);   // Move toward center
+
+    if let Err(e) = game.make_move(from, to) {
+        panic!("Failed to make move: {:?}", e);
+    }
+
+    let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+
+    terminal
+        .draw(|f| {
+            // Cursor at top-left corner (0, 0) with no selection
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game, cursor, None);
+        })
+        .unwrap();
+
+    assert_snapshot!(terminal.backend());
+}
