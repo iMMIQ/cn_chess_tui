@@ -25,6 +25,12 @@ pub enum FenError {
     InvalidFileCount,
     InvalidTurn,
     InvalidMoveCount,
+    #[allow(dead_code)]
+    MissingMovesKeyword,
+    #[allow(dead_code)]
+    EmptyMovesList,
+    #[allow(dead_code)]
+    InvalidMoveInHistory(String),
 }
 
 impl std::fmt::Display for FenError {
@@ -37,6 +43,9 @@ impl std::fmt::Display for FenError {
             FenError::InvalidFileCount => write!(f, "Invalid file count (expected 9)"),
             FenError::InvalidTurn => write!(f, "Invalid turn indicator (expected 'w' or 'b')"),
             FenError::InvalidMoveCount => write!(f, "Invalid move count"),
+            FenError::MissingMovesKeyword => write!(f, "Missing 'moves' keyword in FEN with moves"),
+            FenError::EmptyMovesList => write!(f, "Empty moves list in FEN with moves"),
+            FenError::InvalidMoveInHistory(mv) => write!(f, "Invalid move in history: {}", mv),
         }
     }
 }
