@@ -7,6 +7,7 @@ pub mod notation;
 pub mod pgn;
 pub mod types;
 pub mod ui;
+pub mod xml;
 
 pub use board::Board;
 pub use fen::{board_to_fen, fen_to_board, FenError};
@@ -17,6 +18,7 @@ pub use pgn::{PgnGame, PgnGameResult, PgnMove, PgnTag};
 // Re-export PgnGameResult as PgnResult for convenience
 pub use pgn::PgnGameResult as PgnResult;
 pub use types::{move_to_simple_notation, Color, Piece, PieceType, Position};
+pub use xml::{escape_xml, pgn_to_xml, save_content, unescape_xml, xml_to_pgn};
 
 // Re-export UI for testing
 pub use ui::UI;
