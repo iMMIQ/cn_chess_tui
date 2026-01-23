@@ -278,3 +278,52 @@ fn test_full_layout() {
 
     assert_snapshot!("full_layout", terminal.backend());
 }
+
+/// Test snapshot consistency - identical game states produce identical UI.
+///
+/// This test verifies that the same game state rendered multiple times
+/// produces exactly the same UI output, ensuring:
+/// - No non-deterministic behavior in rendering
+/// - No state pollution between renders
+/// - Consistent terminal output
+///
+/// This is important for snapshot testing reliability, as we need to ensure
+/// that snapshot comparisons are meaningful and not affected by random
+/// factors like timing, hidden state, or rendering order.
+#[test]
+fn test_snapshot_consistency() {
+    // Create two identical game states
+    let game1 = Game::new();
+    let game2 = Game::new();
+
+    // Render both to separate terminals
+    let mut terminal1 = Terminal::new(TestBackend::new(80, 24)).unwrap();
+    let mut terminal2 = Terminal::new(TestBackend::new(80, 24)).unwrap();
+
+    terminal1
+        .draw(|f| {
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game1, cursor, None);
+        })
+        .unwrap();
+
+    terminal2
+        .draw(|f| {
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game2, cursor, None);
+        })
+        .unwrap();
+
+    // Both should produce identical output
+    let backend1 = terminal1.backend();
+    let backend2 = terminal2.backend();
+
+    // Compare the string representation
+    let output1 = format!("{:?}", backend1.buffer());
+    let output2 = format!("{:?}", backend2.buffer());
+
+    assert_eq!(
+        output1, output2,
+        "identical game states should produce identical UI"
+    );
+}
