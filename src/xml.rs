@@ -2,7 +2,7 @@
 //!
 //! This module provides conversion between PGN format and XML format
 //! for Chinese Chess games. The XML format follows Chinese Chess standards
-//! with a <pgn> root element, tag elements, and move elements.
+//! with a `<pgn>` root element, tag elements, and move elements.
 //!
 //! Example XML output:
 //! ```xml
