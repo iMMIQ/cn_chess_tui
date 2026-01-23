@@ -432,6 +432,17 @@ impl GameController {
         })
     }
 
+    /// Create controller from existing Game
+    pub fn from_game(game: Game) -> Self {
+        Self {
+            game,
+            ai_mode: AiMode::Off,
+            ai_client: None,
+            ai_config: AiConfig::default(),
+            engine_thinking: false,
+        }
+    }
+
     pub fn game(&self) -> &Game {
         &self.game
     }

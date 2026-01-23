@@ -1,4 +1,4 @@
-use crate::game::{Game, GameState};
+use crate::game::{Game, GameState, AiMode};
 use crate::types::{move_to_simple_notation, Color, Position};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
@@ -106,6 +106,13 @@ impl LayoutConfig {
         let py = (y as u16) * self.cell_height;
         (px, py)
     }
+}
+
+/// AI menu selection state
+#[derive(Debug, Clone, Copy, Default)]
+pub struct AiMenuState {
+    pub selected: usize,
+    pub show_thinking: bool,
 }
 
 pub struct UI;
@@ -858,5 +865,68 @@ impl UI {
                 Constraint::Length((r.width.saturating_sub(width)) / 2),
             ])
             .split(patch_layout[1])[1]
+    }
+
+    /// Draw AI mode selection menu overlay
+    pub fn draw_ai_menu(
+        f: &mut Frame,
+        current_mode: AiMode,
+        show_thinking: bool,
+        menu_state: &AiMenuState,
+    ) {
+        let size = f.area();
+        let width = 35;
+        let height = 11;
+        let menu_area = Self::centered_rect(width, height, size);
+
+        let options = vec![
+            ("Off (Player vs Player)", AiMode::Off),
+            ("AI plays Black", AiMode::PlaysBlack),
+            ("AI plays Red", AiMode::PlaysRed),
+            ("AI plays Both (spectate)", AiMode::PlaysBoth),
+        ];
+
+        let mut lines = vec![
+            Line::from(Span::styled(
+                " AI Mode Selection ",
+                Style::default().fg(C_ACCENT).add_modifier(Modifier::BOLD),
+            )),
+            Line::from(""),
+        ];
+
+        for (i, (text, mode)) in options.iter().enumerate() {
+            let is_selected = menu_state.selected == i;
+            let is_current = *mode == current_mode;
+
+            let prefix = if is_current { "[*] " } else { "[ ] " };
+            let style = if is_selected {
+                Style::default().fg(C_PRIMARY).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(C_SECONDARY)
+            };
+
+            lines.push(Line::from(Span::styled(format!("{}{}", prefix, text), style)));
+        }
+
+        lines.push(Line::from(""));
+        lines.push(Line::from(if menu_state.show_thinking {
+            "[*] Show thinking output"
+        } else {
+            "[ ] Show thinking output"
+        }));
+        lines.push(Line::from(""));
+        lines.push(Line::from("[↑↓] Navigate  [Enter] Select  [Esc] Cancel"));
+
+        let paragraph = Paragraph::new(lines)
+            .block(
+                Block::default()
+                    .borders(BORDER_ALL)
+                    .border_style(Style::default().fg(C_PRIMARY))
+                    .style(Style::default().bg(RColor::Black)),
+            )
+            .alignment(Alignment::Left);
+
+        f.render_widget(Clear, menu_area);
+        f.render_widget(paragraph, menu_area);
     }
 }

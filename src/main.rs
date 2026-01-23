@@ -10,8 +10,9 @@ mod ucci;
 mod ui;
 
 use crate::fen::FenError;
-use crate::game::Game;
+use crate::game::{Game, GameController, AiMode};
 use crate::types::Position;
+use crate::ui::AiMenuState;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -56,47 +57,55 @@ enum SelectionState {
 
 /// Main application state
 struct App {
-    game: Game,
+    controller: GameController,
     cursor: Position,
     selection: SelectionState,
     message: Option<String>,
     message_time: Instant,
     running: bool,
+    ai_menu_active: bool,
+    ai_menu_state: AiMenuState,
 }
 
 impl App {
     fn new() -> Self {
         Self {
-            game: Game::new(),
+            controller: GameController::new(),
             cursor: Position::from_xy(4, 9), // Start at Red General's position
             selection: SelectionState::SelectingSource,
             message: None,
             message_time: Instant::now(),
             running: true,
+            ai_menu_active: false,
+            ai_menu_state: AiMenuState::default(),
         }
     }
 
     fn from_fen(fen: &str) -> Result<Self, FenError> {
         Ok(Self {
-            game: Game::from_fen(fen)?,
+            controller: GameController::from_fen(fen)?,
             cursor: Position::from_xy(4, 9),
             selection: SelectionState::SelectingSource,
             message: None,
             message_time: Instant::now(),
             running: true,
+            ai_menu_active: false,
+            ai_menu_state: AiMenuState::default(),
         })
     }
 
     fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let fen = crate::fen_io::read_fen_file(path)?;
-        let game = Game::from_fen(&fen)?;
+        let controller = GameController::from_fen(&fen)?;
         Ok(Self {
-            game,
+            controller,
             cursor: Position::from_xy(4, 9),
             selection: SelectionState::SelectingSource,
             message: None,
             message_time: Instant::now(),
             running: true,
+            ai_menu_active: false,
+            ai_menu_state: AiMenuState::default(),
         })
     }
 
@@ -109,14 +118,15 @@ impl App {
             crate::pgn::PgnGame::parse(&pgn_content).ok_or("Failed to parse PGN file")?;
 
         // Create game and apply moves from PGN
-        let mut game = Game::new();
-
-        // Check if FEN tag is present and use it
-        if let Some(fen) = pgn_game.get_tag("FEN") {
+        let mut game = if let Some(fen) = pgn_game.get_tag("FEN") {
             if !fen.is_empty() {
-                game = Game::from_fen(fen)?;
+                Game::from_fen(fen)?
+            } else {
+                Game::new()
             }
-        }
+        } else {
+            Game::new()
+        };
 
         // Apply all moves from the PGN
         for pgn_move in &pgn_game.moves {
@@ -157,27 +167,68 @@ impl App {
             }
         }
 
+        // Wrap the game in a controller
+        let controller = GameController::from_game(game);
+
         Ok(Self {
-            game,
+            controller,
             cursor: Position::from_xy(4, 9),
             selection: SelectionState::SelectingSource,
             message: None,
             message_time: Instant::now(),
             running: true,
+            ai_menu_active: false,
+            ai_menu_state: AiMenuState::default(),
         })
     }
 
     fn handle_key(&mut self, key: KeyCode) {
+        // Handle menu navigation if menu is active
+        if self.ai_menu_active {
+            match key {
+                KeyCode::Up => {
+                    if self.ai_menu_state.selected > 0 {
+                        self.ai_menu_state.selected -= 1;
+                    }
+                }
+                KeyCode::Down => {
+                    if self.ai_menu_state.selected < 4 {
+                        self.ai_menu_state.selected += 1;
+                    }
+                }
+                KeyCode::Enter => {
+                    self.apply_ai_menu_selection();
+                }
+                KeyCode::Esc => {
+                    self.ai_menu_active = false;
+                }
+                _ => {}
+            }
+            return;
+        }
+
+        // Normal key handlers
         match key {
             KeyCode::Char('q') | KeyCode::Esc => {
-                self.running = false;
+                if self.ai_menu_active {
+                    self.ai_menu_active = false;
+                } else {
+                    self.running = false;
+                }
+            }
+            KeyCode::Char('m') | KeyCode::Char('M') => {
+                if !self.ai_menu_active {
+                    self.ai_menu_active = true;
+                    self.ai_menu_state = AiMenuState::default();
+                    self.ai_menu_state.show_thinking = self.controller.ai_config().show_thinking;
+                }
             }
             KeyCode::Char('r') => {
                 // Restart the game
                 *self = Self::new();
             }
             KeyCode::Char('u') => {
-                if self.game.undo_move() {
+                if self.controller.undo_move() {
                     self.show_message("Move undone".to_string());
                 } else {
                     self.show_message("No moves to undo".to_string());
@@ -215,14 +266,14 @@ impl App {
         match self.selection {
             SelectionState::SelectingSource => {
                 // Check if there's a piece at cursor position
-                if let Some(piece) = self.game.board().get(self.cursor) {
+                if let Some(piece) = self.controller.board().get(self.cursor) {
                     // Check if it's the current player's piece
-                    if piece.color == self.game.turn() {
+                    if piece.color == self.controller.turn() {
                         self.selection = SelectionState::SelectingDestination(self.cursor);
                     } else {
                         self.show_message(format!(
                             "Not your piece - it's {}'s turn",
-                            self.game.turn()
+                            self.controller.turn()
                         ));
                     }
                 } else {
@@ -231,7 +282,7 @@ impl App {
             }
             SelectionState::SelectingDestination(source) => {
                 // Try to make the move
-                let result = self.game.make_move(source, self.cursor);
+                let result = self.controller.human_move(source, self.cursor);
                 match result {
                     Ok(()) => {
                         self.show_message("Move successful".to_string());
@@ -243,6 +294,29 @@ impl App {
                 self.selection = SelectionState::SelectingSource;
             }
         }
+    }
+
+    fn apply_ai_menu_selection(&mut self) {
+        match self.ai_menu_state.selected {
+            0 => self.controller.set_ai_mode(AiMode::Off),
+            1 => self.controller.set_ai_mode(AiMode::PlaysBlack),
+            2 => self.controller.set_ai_mode(AiMode::PlaysRed),
+            3 => self.controller.set_ai_mode(AiMode::PlaysBoth),
+            4 => {
+                let mut config = self.controller.ai_config().clone();
+                config.show_thinking = !config.show_thinking;
+                let new_value = config.show_thinking;
+                self.controller.set_ai_config(config);
+                self.ai_menu_state.show_thinking = new_value;
+                self.show_message("Thinking display toggled".to_string());
+                self.ai_menu_active = false;
+                return;
+            }
+            _ => return,
+        }
+
+        self.show_message(format!("AI mode: {:?}", self.controller.ai_mode()));
+        self.ai_menu_active = false;
     }
 
     fn show_message(&mut self, msg: String) {
@@ -259,7 +333,17 @@ impl App {
 
         // Draw the main game UI with cursor and selection
         // (includes game over popup when game is not in Playing state)
-        ui::UI::draw(f, &self.game, self.cursor, selection);
+        ui::UI::draw(f, self.controller.game(), self.cursor, selection);
+
+        // Draw AI menu if active
+        if self.ai_menu_active {
+            ui::UI::draw_ai_menu(
+                f,
+                self.controller.ai_mode(),
+                self.controller.ai_config().show_thinking,
+                &self.ai_menu_state,
+            );
+        }
 
         // Draw message overlay if active
         if let Some(ref msg) = self.message {
