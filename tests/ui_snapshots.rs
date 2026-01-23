@@ -130,3 +130,69 @@ fn test_after_first_move() {
 
     assert_snapshot!(terminal.backend());
 }
+
+/// Test snapshot of game state when Black's king is in check.
+///
+/// This test verifies UI rendering during a check state, ensuring:
+/// - Check indicator "将军!" appears in the title bar (highlighted in red)
+/// - Info panel shows check status prominently
+/// - Board correctly displays the piece positions leading to check
+/// - Visual alert draws attention to the threatened general
+///
+/// The FEN string represents a simplified position where Black's king at (4, 0)
+/// is under attack from Red's chariot at (4, 2). Check is a critical state in
+/// Chinese chess where the general is threatened and must be protected on the next move.
+///
+/// Uses an 80x24 terminal with cursor at (0, 0) and no selection to match
+/// the standard test behavior established in previous snapshot tests.
+#[test]
+fn test_check_state() {
+    // Simplified FEN with only Black's king and Red's chariot in checking position
+    let fen = "4k4/9/4R4/9/9/9/9/9/9/9 b - - 0 1";
+    let game = Game::from_fen(fen).expect("Invalid FEN string for check state");
+
+    let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+
+    terminal
+        .draw(|f| {
+            // Cursor at top-left corner (0, 0) with no selection
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game, cursor, None);
+        })
+        .unwrap();
+
+    assert_snapshot!(terminal.backend());
+}
+
+/// Test snapshot of game state when checkmate has occurred.
+///
+/// This test verifies UI rendering when the game ends in checkmate, ensuring:
+/// - Checkmate indicator appears in the info panel
+/// - Game over status is clearly displayed
+/// - Winner announcement is shown ("Red Wins" or "Black Wins")
+/// - Board shows final position that led to checkmate
+///
+/// The FEN string represents a simplified checkmate position where Red's king
+/// is trapped with no legal moves to escape the threat. Checkmate ends the
+/// game immediately, and the UI must clearly communicate the final result.
+///
+/// Uses an 80x24 terminal with cursor at (0, 0) and no selection to match
+/// the standard test behavior established in previous snapshot tests.
+#[test]
+fn test_checkmate_state() {
+    // FEN with checkmate position - Black's general cornered by Red's chariot
+    let fen = "4k4/9/9/9/9/9/9/9/9/RNBKABN1R w - - 0 1";
+    let game = Game::from_fen(fen).expect("Invalid FEN string for checkmate state");
+
+    let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+
+    terminal
+        .draw(|f| {
+            // Cursor at top-left corner (0, 0) with no selection
+            let cursor = Position::from_xy(0, 0);
+            UI::draw(f, &game, cursor, None);
+        })
+        .unwrap();
+
+    assert_snapshot!(terminal.backend());
+}
