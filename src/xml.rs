@@ -23,98 +23,15 @@
 //! ```
 
 use crate::pgn::{PgnGame, PgnGameResult};
+use quick_xml::events::{Event, BytesStart, BytesEnd, BytesText, BytesDecl};
+use quick_xml::reader::Reader;
+use quick_xml::writer::Writer;
 use std::fs::File;
-use std::io::Write;
-
-/// Escape special XML characters in a string
-///
-/// Converts:
-/// - & -> &amp;
-/// - < -> &lt;
-/// - > -> &gt;
-/// - " -> &quot;
-/// - ' -> &apos;
-///
-/// # Examples
-/// ```
-/// use cn_chess_tui::xml::escape_xml;
-///
-/// assert_eq!(escape_xml("a < b"), "a &lt; b");
-/// assert_eq!(escape_xml("Tom & Jerry"), "Tom &amp; Jerry");
-/// assert_eq!(escape_xml("\"Hello\""), "&quot;Hello&quot;");
-/// ```
-pub fn escape_xml(s: &str) -> String {
-    let mut escaped = String::with_capacity(s.len());
-    for c in s.chars() {
-        match c {
-            '&' => escaped.push_str("&amp;"),
-            '<' => escaped.push_str("&lt;"),
-            '>' => escaped.push_str("&gt;"),
-            '"' => escaped.push_str("&quot;"),
-            '\'' => escaped.push_str("&apos;"),
-            _ => escaped.push(c),
-        }
-    }
-    escaped
-}
-
-/// Unescape XML entities in a string
-///
-/// Converts XML entities back to their original characters:
-/// - &amp; -> &
-/// - &lt; -> <
-/// - &gt; -> >
-/// - &quot; -> "
-/// - &apos; -> '
-///
-/// # Examples
-/// ```
-/// use cn_chess_tui::xml::unescape_xml;
-///
-/// assert_eq!(unescape_xml("a &lt; b"), "a < b");
-/// assert_eq!(unescape_xml("Tom &amp; Jerry"), "Tom & Jerry");
-/// ```
-pub fn unescape_xml(s: &str) -> String {
-    let mut unescaped = String::with_capacity(s.len());
-    let mut chars = s.chars().peekable();
-
-    while let Some(c) = chars.next() {
-        if c == '&' {
-            // Try to parse an entity
-            let mut entity = String::new();
-            while let Some(&next) = chars.peek() {
-                if next == ';' {
-                    chars.next(); // Consume the semicolon
-                    break;
-                }
-                entity.push(next);
-                chars.next();
-            }
-
-            match entity.as_str() {
-                "amp" => unescaped.push('&'),
-                "lt" => unescaped.push('<'),
-                "gt" => unescaped.push('>'),
-                "quot" => unescaped.push('"'),
-                "apos" => unescaped.push('\''),
-                _ => {
-                    // Unknown entity, keep as-is
-                    unescaped.push('&');
-                    unescaped.push_str(&entity);
-                    if entity.is_empty() {
-                        unescaped.push(';');
-                    }
-                }
-            }
-        } else {
-            unescaped.push(c);
-        }
-    }
-
-    unescaped
-}
+use std::io::{Cursor, Write};
 
 /// Convert a PgnGame to XML string format
+///
+/// This function uses quick-xml's Writer for proper XML serialization.
 ///
 /// # Examples
 /// ```
@@ -134,45 +51,74 @@ pub fn unescape_xml(s: &str) -> String {
 /// assert!(xml.contains("<move>h9g7</move>"));
 /// ```
 pub fn pgn_to_xml(game: &PgnGame) -> String {
-    let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
-    xml.push_str("\n<pgn>\n");
+    let mut writer = Writer::new_with_indent(Cursor::new(Vec::new()), b' ', 2);
 
-    // Tags section
-    xml.push_str("  <tags>\n");
+    // Write XML declaration
+    let decl = BytesDecl::new("1.0", Some("UTF-8"), None);
+    writer.write_event(Event::Decl(decl)).unwrap();
+
+    // Write root element <pgn>
+    let pgn_start = BytesStart::new("pgn");
+    writer.write_event(Event::Start(pgn_start)).unwrap();
+
+    // Write <tags> section
+    let tags_start = BytesStart::new("tags");
+    writer.write_event(Event::Start(tags_start)).unwrap();
+
     for tag in &game.tags {
-        let escaped_key = escape_xml(&tag.key);
-        let escaped_value = escape_xml(&tag.value);
-        xml.push_str(&format!(
-            "    <{}>{}</{}>\n",
-            escaped_key, escaped_value, escaped_key
-        ));
-    }
-    xml.push_str("  </tags>\n");
+        let tag_start = BytesStart::new(tag.key.as_str());
+        writer.write_event(Event::Start(tag_start)).unwrap();
 
-    // Moves section
+        let text = BytesText::new(tag.value.as_str());
+        writer.write_event(Event::Text(text)).unwrap();
+
+        let tag_end = BytesEnd::new(tag.key.as_str());
+        writer.write_event(Event::End(tag_end)).unwrap();
+    }
+
+    let tags_end = BytesEnd::new("tags");
+    writer.write_event(Event::End(tags_end)).unwrap();
+
+    // Write <moves> section if there are moves
     if !game.moves.is_empty() {
-        xml.push_str("  <moves>\n");
+        let moves_start = BytesStart::new("moves");
+        writer.write_event(Event::Start(moves_start)).unwrap();
+
         for mv in &game.moves {
-            let escaped_notation = escape_xml(&mv.notation);
-            xml.push_str(&format!("    <move>{}</move>\n", escaped_notation));
+            let move_start = BytesStart::new("move");
+            writer.write_event(Event::Start(move_start)).unwrap();
+
+            let text = BytesText::new(mv.notation.as_str());
+            writer.write_event(Event::Text(text)).unwrap();
+
+            let move_end = BytesEnd::new("move");
+            writer.write_event(Event::End(move_end)).unwrap();
         }
-        xml.push_str("  </moves>\n");
+
+        let moves_end = BytesEnd::new("moves");
+        writer.write_event(Event::End(moves_end)).unwrap();
     }
 
-    // Result
-    xml.push_str(&format!(
-        "  <result>{}</result>\n",
-        game.result.to_pgn_string()
-    ));
+    // Write <result>
+    let result_start = BytesStart::new("result");
+    writer.write_event(Event::Start(result_start)).unwrap();
 
-    xml.push_str("</pgn>");
-    xml
+    let result_text = BytesText::new(game.result.to_pgn_string());
+    writer.write_event(Event::Text(result_text)).unwrap();
+
+    let result_end = BytesEnd::new("result");
+    writer.write_event(Event::End(result_end)).unwrap();
+
+    // Write root end element </pgn>
+    let pgn_end = BytesEnd::new("pgn");
+    writer.write_event(Event::End(pgn_end)).unwrap();
+
+    // Extract the written XML
+    let result = writer.into_inner();
+    String::from_utf8(result.into_inner()).unwrap()
 }
 
-/// Convert an XML string to a PgnGame (simplified parser)
-///
-/// This is a basic XML parser that handles the specific format
-/// generated by pgn_to_xml(). It does not handle general XML parsing.
+/// Convert an XML string to a PgnGame using quick-xml parser
 ///
 /// # Examples
 /// ```
@@ -194,125 +140,83 @@ pub fn pgn_to_xml(game: &PgnGame) -> String {
 /// assert_eq!(parsed_game.moves.len(), game.moves.len());
 /// ```
 pub fn xml_to_pgn(xml: &str) -> Option<PgnGame> {
+    let mut reader = Reader::from_str(xml);
+    reader.config_mut().trim_text(true);
+
     let mut game = PgnGame::new();
     let mut in_tags = false;
     let mut in_moves = false;
     let mut in_result = false;
-    let mut current_tag_name = String::new();
+    let mut current_tag_name: Option<String> = None;
     let mut current_content = String::new();
-    let mut chars = xml.chars().peekable();
 
-    while let Some(c) = chars.next() {
-        match c {
-            '<' => {
-                // Check for closing tag or opening tag
-                if let Some(&next) = chars.peek() {
-                    if next == '/' {
-                        // Closing tag
-                        chars.next(); // Consume '/'
-                        let tag_name = read_tag_name(&mut chars)?;
+    let mut buf = Vec::new();
 
-                        match tag_name.as_str() {
-                            "tags" => in_tags = false,
-                            "moves" => in_moves = false,
-                            "result" => {
-                                game.result = PgnGameResult::parse(current_content.trim())
-                                    .unwrap_or(PgnGameResult::Unknown);
-                                in_result = false;
-                            }
-                            "pgn" => break, // End of document
-                            _ => {
-                                // It's a closing tag for a specific tag or move
-                                if in_moves && tag_name == "move" {
-                                    game.add_move(unescape_xml(current_content.trim()));
-                                } else if in_tags && !current_tag_name.is_empty() {
-                                    game.set_tag(
-                                        current_tag_name.clone(),
-                                        unescape_xml(&current_content),
-                                    );
-                                }
-                            }
-                        }
-
-                        current_tag_name.clear();
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(ref e)) => {
+                match e.name().as_ref() {
+                    b"tags" => in_tags = true,
+                    b"moves" => in_moves = true,
+                    b"move" => {
                         current_content.clear();
-                    } else if next == '!' {
-                        // Comment or declaration, skip to next '>'
-                        while let Some(&ch) = chars.peek() {
-                            chars.next();
-                            if ch == '>' {
-                                break;
-                            }
-                        }
-                    } else if next == '?' {
-                        // XML declaration, skip to next '?>'
-                        chars.next(); // Consume '?'
-                        while let Some(&ch) = chars.peek() {
-                            chars.next();
-                            if ch == '?' {
-                                if let Some(&'>') = chars.peek() {
-                                    chars.next();
-                                    break;
-                                }
-                            }
-                        }
-                    } else {
-                        // Opening tag
-                        let tag_name = read_tag_name(&mut chars)?;
-
-                        match tag_name.as_str() {
-                            "tags" => in_tags = true,
-                            "moves" => in_moves = true,
-                            "move" => {
-                                current_content.clear();
-                            }
-                            "result" => {
-                                current_content.clear();
-                                in_result = true;
-                            }
-                            _ => {
-                                if in_tags {
-                                    current_tag_name = tag_name;
-                                    current_content.clear();
-                                }
-                            }
-                        }
-
-                        // Skip to closing '>'
-                        while let Some(&ch) = chars.peek() {
-                            chars.next();
-                            if ch == '>' {
-                                break;
-                            }
+                    }
+                    b"result" => {
+                        current_content.clear();
+                        in_result = true;
+                    }
+                    _ => {
+                        if in_tags {
+                            current_tag_name = Some(std::str::from_utf8(e.name().as_ref()).ok()?.to_string());
+                            current_content.clear();
                         }
                     }
                 }
             }
-            _ => {
-                // Content character
-                if in_tags && !current_tag_name.is_empty() || in_moves || in_result {
-                    current_content.push(c);
+            Ok(Event::End(ref e)) => {
+                match e.name().as_ref() {
+                    b"tags" => in_tags = false,
+                    b"moves" => in_moves = false,
+                    b"move" => {
+                        if in_moves {
+                            game.add_move(current_content.trim());
+                        }
+                        current_content.clear();
+                    }
+                    b"result" => {
+                        game.result = PgnGameResult::parse(current_content.trim())
+                            .unwrap_or(PgnGameResult::Unknown);
+                        current_content.clear();
+                        in_result = false;
+                    }
+                    b"pgn" => break,
+                    _ => {
+                        if in_tags {
+                            if let (Some(tag_name), false) = (&current_tag_name, current_content.is_empty()) {
+                                game.set_tag(tag_name.clone(), current_content.trim().to_string());
+                            }
+                            current_tag_name = None;
+                            current_content.clear();
+                        }
+                    }
                 }
             }
+            Ok(Event::Text(e)) => {
+                if in_tags || in_moves || in_result {
+                    current_content.push_str(e.unescape().ok()?.as_ref());
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => {
+                eprintln!("XML parsing error: {}", e);
+                return None;
+            }
+            _ => {}
         }
+        buf.clear();
     }
 
     Some(game)
-}
-
-/// Helper function to read a tag name from XML
-fn read_tag_name(chars: &mut std::iter::Peekable<std::str::Chars>) -> Option<String> {
-    let mut name = String::new();
-
-    while let Some(&c) = chars.peek() {
-        if c.is_whitespace() || c == '>' || c == '/' {
-            break;
-        }
-        name.push(c);
-        chars.next();
-    }
-
-    Some(name)
 }
 
 /// Save content to a file
@@ -333,53 +237,6 @@ pub fn save_content(path: &str, content: &str) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_escape_xml_basic() {
-        assert_eq!(escape_xml("a < b"), "a &lt; b");
-        assert_eq!(escape_xml("a > b"), "a &gt; b");
-        assert_eq!(escape_xml("a & b"), "a &amp; b");
-        assert_eq!(escape_xml("\"hello\""), "&quot;hello&quot;");
-        assert_eq!(escape_xml("'world'"), "&apos;world&apos;");
-    }
-
-    #[test]
-    fn test_escape_xml_combined() {
-        assert_eq!(
-            escape_xml("if (a < b && c > d)"),
-            "if (a &lt; b &amp;&amp; c &gt; d)"
-        );
-    }
-
-    #[test]
-    fn test_escape_xml_empty() {
-        assert_eq!(escape_xml(""), "");
-    }
-
-    #[test]
-    fn test_unescape_xml_basic() {
-        assert_eq!(unescape_xml("a &lt; b"), "a < b");
-        assert_eq!(unescape_xml("a &gt; b"), "a > b");
-        assert_eq!(unescape_xml("a &amp; b"), "a & b");
-        assert_eq!(unescape_xml("&quot;hello&quot;"), "\"hello\"");
-        assert_eq!(unescape_xml("&apos;world&apos;"), "'world'");
-    }
-
-    #[test]
-    fn test_unescape_xml_combined() {
-        assert_eq!(
-            unescape_xml("if (a &lt; b &amp;&amp; c &gt; d)"),
-            "if (a < b && c > d)"
-        );
-    }
-
-    #[test]
-    fn test_escape_unescape_roundtrip() {
-        let original = "if (a < b && c > d) { return \"test\"; }";
-        let escaped = escape_xml(original);
-        let unescaped = unescape_xml(&escaped);
-        assert_eq!(original, unescaped);
-    }
 
     #[test]
     fn test_pgn_to_xml_simple() {
