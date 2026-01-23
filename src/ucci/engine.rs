@@ -80,46 +80,14 @@ impl EngineProcess {
         Ok(line.trim_end().to_string())
     }
 
-    /// Read a line with timeout
-    pub fn read_line_timeout(&mut self, timeout_ms: u64) -> Result<String, EngineError> {
-        // For simplicity, we'll poll. A proper implementation would use async channels
-        let start = std::time::Instant::now();
-        let timeout = Duration::from_millis(timeout_ms);
-
-        loop {
-            // Check if process is still alive
-            match self.child.try_wait() {
-                Ok(Some(status)) => {
-                    if let Some(code) = status.code() {
-                        return Err(EngineError::Crashed(code));
-                    }
-                }
-                Err(_) => return Err(EngineError::ReadFailed(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Failed to check process status",
-                ))),
-                _ => {}
-            }
-
-            // Try to read with a small timeout
-            let mut line = String::new();
-            match self.stdout.read_line(&mut line) {
-                Ok(0) => return Err(EngineError::UnexpectedEof),
-                Ok(_) => {
-                    return Ok(line.trim_end().to_string());
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    // No data yet, continue polling
-                }
-                Err(e) => return Err(EngineError::ReadFailed(e)),
-            }
-
-            if start.elapsed() >= timeout {
-                return Err(EngineError::Timeout);
-            }
-
-            thread::sleep(Duration::from_millis(10));
-        }
+    /// Read a line with timeout (NOT YET IMPLEMENTED - currently blocks)
+    ///
+    /// TODO: Implement actual timeout with async I/O or separate thread.
+    /// For now, this blocks indefinitely just like read_line().
+    pub fn read_line_timeout(&mut self, _timeout_ms: u64) -> Result<String, EngineError> {
+        // TODO: Implement actual timeout with async I/O or separate thread
+        // For now, this blocks indefinitely
+        self.read_line()
     }
 
     /// Check if the engine process is still running
@@ -155,6 +123,15 @@ impl EngineProcess {
     /// Get the process ID
     pub fn pid(&self) -> u32 {
         self.child.id()
+    }
+}
+
+/// Ensure the engine process is properly terminated when dropped
+impl Drop for EngineProcess {
+    fn drop(&mut self) {
+        // Force kill if still running to prevent zombie processes
+        let _ = self.child.kill();
+        let _ = self.child.wait();
     }
 }
 
