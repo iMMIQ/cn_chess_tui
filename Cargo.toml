@@ -18,3 +18,7 @@ tempfile = "3.14"
 [features]
 default = []
 ucci-cli = ["clap", "rustyline"]
+
+[[bin]]
+name = "ucci_client"
+required-features = ["ucci-cli"]
