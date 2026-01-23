@@ -139,6 +139,7 @@ impl Game {
     }
 
     /// Get move history in ICCS notation format
+    #[allow(dead_code)]
     pub fn get_moves_with_iccs(&self) -> Vec<String> {
         self.move_history
             .iter()
@@ -333,6 +334,7 @@ impl Game {
     /// assert!(pgn.contains("[Red \"?\"]"));
     /// assert!(pgn.contains("[Black \"?\"]"));
     /// ```
+    #[allow(dead_code)]
     pub fn to_pgn(&self) -> PgnGame {
         let mut pgn_game = PgnGame::new();
 

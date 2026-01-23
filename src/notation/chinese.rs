@@ -205,6 +205,7 @@ pub fn move_to_chinese(piece: Piece, from: Position, to: Position) -> String {
 }
 
 /// Find all pieces of the same type and color on the same file
+#[allow(dead_code)]
 fn find_pieces_on_same_file(board: &Board, piece: Piece, from: Position) -> Vec<Position> {
     board
         .pieces_of_color(piece.color)
@@ -223,6 +224,7 @@ fn find_pieces_on_same_file(board: &Board, piece: Piece, from: Position) -> Vec<
 /// Rules:
 /// - 2 soldiers: use 前兵/后兵
 /// - 3+ soldiers: use 一兵/二兵/三兵/四兵/五兵
+#[allow(dead_code)]
 fn handle_soldier_ambiguity(
     _board: &Board,
     piece: Piece,
@@ -306,6 +308,7 @@ fn handle_soldier_ambiguity(
 /// // Should show "后兵五进一" (rear soldier)
 /// let notation = move_to_chinese_with_context(&game, piece, from, to);
 /// ```
+#[allow(dead_code)]
 pub fn move_to_chinese_with_context(game: &Game, piece: Piece, from: Position, to: Position) -> String {
     let piece_name = if piece.piece_type == PieceType::Soldier {
         // Check for soldier ambiguity

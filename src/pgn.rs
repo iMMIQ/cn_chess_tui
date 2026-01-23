@@ -63,6 +63,7 @@ impl PgnTag {
     }
 
     /// Create a new PgnTag
+    #[allow(dead_code)]
     pub fn new(key: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             key: key.into(),
@@ -99,12 +100,14 @@ impl PgnMove {
     }
 
     /// Add a comment to this move
+    #[allow(dead_code)]
     pub fn with_comment(mut self, comment: impl Into<String>) -> Self {
         self.comment = Some(comment.into());
         self
     }
 
     /// Set the move number
+    #[allow(dead_code)]
     pub fn with_move_number(mut self, number: usize) -> Self {
         self.move_number = Some(number);
         self
@@ -267,6 +270,7 @@ impl PgnGame {
     }
 
     /// Set a tag value
+    #[allow(dead_code)]
     pub fn set_tag(&mut self, key: impl Into<String>, value: impl Into<String>) {
         let key = key.into();
         let value = value.into();
@@ -280,6 +284,7 @@ impl PgnGame {
     }
 
     /// Add a move to the game
+    #[allow(dead_code)]
     pub fn add_move(&mut self, notation: impl Into<String>) {
         let move_num = (self.moves.len() / 2) + 1;
         let pgn_move = PgnMove::new(notation).with_move_number(move_num);
@@ -346,6 +351,7 @@ impl PgnGame {
     }
 
     /// Get standard Chinese Chess PGN tags
+    #[allow(dead_code)]
     pub fn standard_tags() -> Vec<PgnTag> {
         vec![
             PgnTag::new("Event", "?"),

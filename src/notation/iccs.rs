@@ -12,6 +12,7 @@ use crate::types::Position;
 /// - (0, 0) -> "a0" (Black's left chariot corner)
 /// - (4, 9) -> "e9" (Red's general position)
 /// - (8, 4) -> "i4" (Right side, middle rank)
+#[allow(dead_code)]
 pub fn position_to_iccs(pos: Position) -> String {
     let file_char = (b'a' + pos.x as u8) as char;
     format!("{}{}", file_char, pos.y)
@@ -29,6 +30,7 @@ pub fn position_to_iccs(pos: Position) -> String {
 /// assert_eq!(iccs_to_position("e9"), Some(Position::from_xy(4, 9)));
 /// assert_eq!(iccs_to_position("z9"), None); // Invalid file
 /// ```
+#[allow(dead_code)]
 pub fn iccs_to_position(s: &str) -> Option<Position> {
     let mut chars = s.chars();
 
@@ -62,6 +64,7 @@ pub fn iccs_to_position(s: &str) -> Option<Position> {
 /// let to = Position::from_xy(4, 7);   // e7 in ICCS
 /// assert_eq!(move_to_iccs(from, to), "h7e7");
 /// ```
+#[allow(dead_code)]
 pub fn move_to_iccs(from: Position, to: Position) -> String {
     format!("{}{}", position_to_iccs(from), position_to_iccs(to))
 }
@@ -69,6 +72,7 @@ pub fn move_to_iccs(from: Position, to: Position) -> String {
 /// Parse ICCS move string to (from, to) positions
 ///
 /// Accepts both "h2e2" and "H2-E2" formats
+#[allow(dead_code)]
 pub fn iccs_to_move(s: &str) -> Option<(Position, Position)> {
     // Remove dash if present and convert to lowercase
     let s = s.replace('-', "").to_lowercase();

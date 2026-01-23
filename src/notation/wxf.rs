@@ -25,6 +25,7 @@ use super::chinese::{MovementDirection, get_movement_direction, position_to_file
 /// assert_eq!(piece_to_wxf_letter(PieceType::Cannon), "C");
 /// assert_eq!(piece_to_wxf_letter(PieceType::Soldier), "P");
 /// ```
+#[allow(dead_code)]
 pub fn piece_to_wxf_letter(piece_type: PieceType) -> &'static str {
     match piece_type {
         PieceType::General => "K",   // King
@@ -48,6 +49,7 @@ pub fn piece_to_wxf_letter(piece_type: PieceType) -> &'static str {
 /// assert_eq!(direction_to_wxf(MovementDirection::Backward), "-");
 /// assert_eq!(direction_to_wxf(MovementDirection::Horizontal), ".");
 /// ```
+#[allow(dead_code)]
 pub fn direction_to_wxf(dir: MovementDirection) -> &'static str {
     match dir {
         MovementDirection::Forward => "+",
@@ -67,6 +69,7 @@ pub fn direction_to_wxf(dir: MovementDirection) -> &'static str {
 /// assert_eq!(wxf_letter_to_piece_type("C"), Some(PieceType::Cannon));
 /// assert_eq!(wxf_letter_to_piece_type("X"), None);
 /// ```
+#[allow(dead_code)]
 pub fn wxf_letter_to_piece_type(letter: &str) -> Option<PieceType> {
     match letter {
         "K" => Some(PieceType::General),
@@ -92,6 +95,7 @@ pub fn wxf_letter_to_piece_type(letter: &str) -> Option<PieceType> {
 /// assert_eq!(wxf_symbol_to_direction("."), Some(MovementDirection::Horizontal));
 /// assert_eq!(wxf_symbol_to_direction("x"), None);
 /// ```
+#[allow(dead_code)]
 pub fn wxf_symbol_to_direction(symbol: &str) -> Option<MovementDirection> {
     match symbol {
         "+" => Some(MovementDirection::Forward),
@@ -130,6 +134,7 @@ pub fn wxf_symbol_to_direction(symbol: &str) -> Option<MovementDirection> {
 /// let to = Position::from_xy(4, 7);   // Backward 2 steps
 /// assert_eq!(move_to_wxf(piece, from, to), "C5-2");
 /// ```
+#[allow(dead_code)]
 pub fn move_to_wxf(piece: Piece, from: Position, to: Position) -> String {
     let piece_letter = piece_to_wxf_letter(piece.piece_type);
     let from_file = position_to_file_number(from, piece.color);
@@ -172,6 +177,7 @@ pub fn move_to_wxf(piece: Piece, from: Position, to: Position) -> String {
 /// // Invalid format
 /// assert_eq!(parse_wxf_move("X2.5"), None);
 /// ```
+#[allow(dead_code)]
 pub fn parse_wxf_move(s: &str) -> Option<(PieceType, usize, MovementDirection, usize)> {
     if s.len() < 4 {
         return None;
