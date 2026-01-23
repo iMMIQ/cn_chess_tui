@@ -1,5 +1,5 @@
 use cn_chess_tui::{
-    types::{Color, Position},
+    types::{Color, Piece, PieceType, Position},
     notation::chinese::*,
 };
 
@@ -52,4 +52,53 @@ fn test_movement_direction() {
     let to = Position::from_xy(4, 2);
     let dir = get_movement_direction(from, to, Color::Black);
     assert_eq!(dir, MovementDirection::Forward);
+}
+
+#[test]
+fn test_piece_to_chinese() {
+    // Red pieces
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::General, Color::Red)), "帅");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Advisor, Color::Red)), "仕");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Elephant, Color::Red)), "相");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Horse, Color::Red)), "马");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Chariot, Color::Red)), "车");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Cannon, Color::Red)), "炮");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Soldier, Color::Red)), "兵");
+
+    // Black pieces
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::General, Color::Black)), "将");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Advisor, Color::Black)), "士");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Elephant, Color::Black)), "象");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Horse, Color::Black)), "马");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Chariot, Color::Black)), "车");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Cannon, Color::Black)), "炮");
+    assert_eq!(piece_to_chinese(Piece::new(PieceType::Soldier, Color::Black)), "卒");
+}
+
+#[test]
+fn test_full_move_notation() {
+    // 炮二平五: Cannon from file 2 horizontally to file 5
+    let piece = Piece::new(PieceType::Cannon, Color::Red);
+    let from = Position::from_xy(7, 7); // File 2 (二) for Red (9-7=2)
+    let to = Position::from_xy(4, 7);   // File 5 (五) for Red (9-4=5)
+    assert_eq!(move_to_chinese(piece, from, to), "炮二平五");
+
+    // 马二进三: Horse from file 2 forward 3 steps
+    let piece = Piece::new(PieceType::Horse, Color::Red);
+    let from = Position::from_xy(7, 9); // File 2 (二) (9-7=2)
+    let to = Position::from_xy(7, 6);   // Forward 3 steps (same file)
+    assert_eq!(move_to_chinese(piece, from, to), "马二进三");
+
+    // 炮五退二: Cannon from file 5 backward 2 steps
+    let piece = Piece::new(PieceType::Cannon, Color::Red);
+    let from = Position::from_xy(4, 5); // File 5 (五) (9-4=5)
+    let to = Position::from_xy(4, 7);   // Backward 2 steps (same file)
+    assert_eq!(move_to_chinese(piece, from, to), "炮五退二");
+
+    // Black piece notation
+    // 将５平６: Black general from file 5 horizontally to file 6
+    let piece = Piece::new(PieceType::General, Color::Black);
+    let from = Position::from_xy(4, 0); // File 5 (五) for Black (4+1=5)
+    let to = Position::from_xy(5, 0);   // File 6 (六) for Black (5+1=6)
+    assert_eq!(move_to_chinese(piece, from, to), "将五平六");
 }

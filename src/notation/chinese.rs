@@ -13,6 +13,7 @@ use crate::types::{Color, Piece, Position};
 
 /// Direction of piece movement in Chinese notation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum MovementDirection {
     /// 进 - forward (toward opponent's side)
     Forward,
@@ -38,6 +39,7 @@ pub enum MovementDirection {
 /// assert_eq!(position_to_file_number(Position::from_xy(4, 5), Color::Black), 5);
 /// assert_eq!(position_to_file_number(Position::from_xy(8, 5), Color::Black), 9);
 /// ```
+#[allow(dead_code)]
 pub fn position_to_file_number(pos: Position, color: Color) -> usize {
     match color {
         Color::Red => 9 - pos.x,  // Right-to-left for Red
@@ -55,6 +57,7 @@ pub fn position_to_file_number(pos: Position, color: Color) -> usize {
 /// assert_eq!(file_number_to_chinese(5), "五");
 /// assert_eq!(file_number_to_chinese(9), "九");
 /// ```
+#[allow(dead_code)]
 pub fn file_number_to_chinese(n: usize) -> &'static str {
     match n {
         1 => "一",
@@ -91,6 +94,7 @@ pub fn file_number_to_chinese(n: usize) -> &'static str {
 /// let to = Position::from_xy(4, 2);
 /// assert_eq!(get_movement_direction(from, to, Color::Black), MovementDirection::Forward);
 /// ```
+#[allow(dead_code)]
 pub fn get_movement_direction(from: Position, to: Position, color: Color) -> MovementDirection {
     if from.y == to.y {
         MovementDirection::Horizontal
@@ -117,6 +121,7 @@ pub fn get_movement_direction(from: Position, to: Position, color: Color) -> Mov
 /// assert_eq!(direction_to_chinese(MovementDirection::Backward), "退");
 /// assert_eq!(direction_to_chinese(MovementDirection::Horizontal), "平");
 /// ```
+#[allow(dead_code)]
 pub fn direction_to_chinese(dir: MovementDirection) -> &'static str {
     match dir {
         MovementDirection::Forward => "进",
@@ -139,6 +144,7 @@ pub fn direction_to_chinese(dir: MovementDirection) -> &'static str {
 /// assert_eq!(piece_to_chinese(Piece::new(PieceType::Cannon, Color::Black)), "炮");
 /// assert_eq!(piece_to_chinese(Piece::new(PieceType::General, Color::Black)), "将");
 /// ```
+#[allow(dead_code)]
 pub fn piece_to_chinese(piece: Piece) -> &'static str {
     match (piece.color, piece.piece_type) {
         (Color::Red, crate::types::PieceType::General) => "帅",
@@ -175,6 +181,7 @@ pub fn piece_to_chinese(piece: Piece) -> &'static str {
 /// let to = Position::from_xy(4, 7);   // File 5 (五) for Red
 /// assert_eq!(move_to_chinese(piece, from, to), "炮二平五");
 /// ```
+#[allow(dead_code)]
 pub fn move_to_chinese(piece: Piece, from: Position, to: Position) -> String {
     let piece_name = piece_to_chinese(piece);
     let from_file = position_to_file_number(from, piece.color);
