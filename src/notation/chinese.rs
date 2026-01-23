@@ -177,11 +177,11 @@ pub fn piece_to_chinese(piece: Piece) -> &'static str {
 ///     notation::chinese::move_to_chinese
 /// };
 ///
-/// // 炮二平五: Cannon from file 2 horizontally to file 5
+/// // 炮三平五: Cannon from file 3 horizontally to file 5
 /// let piece = Piece::new(PieceType::Cannon, Color::Red);
-/// let from = Position::from_xy(6, 7); // File 2 (二) for Red
-/// let to = Position::from_xy(4, 7);   // File 5 (五) for Red
-/// assert_eq!(move_to_chinese(piece, from, to), "炮二平五");
+/// let from = Position::from_xy(6, 7); // File 3 (三) for Red (x=6 → file 3 from right)
+/// let to = Position::from_xy(4, 7);   // File 5 (五) for Red (x=4 → file 5 from right)
+/// assert_eq!(move_to_chinese(piece, from, to), "炮三平五");
 /// ```
 #[allow(dead_code)]
 pub fn move_to_chinese(piece: Piece, from: Position, to: Position) -> String {

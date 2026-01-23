@@ -364,8 +364,9 @@ impl Game {
     /// let mut game = Game::new();
     /// // Make some moves...
     /// let pgn = game.to_pgn();
-    /// assert!(pgn.contains("[Red \"?\"]"));
-    /// assert!(pgn.contains("[Black \"?\"]"));
+    /// let pgn_str = pgn.to_string();
+    /// assert!(pgn_str.contains("[Red \"?\"]"));
+    /// assert!(pgn_str.contains("[Black \"?\"]"));
     /// ```
     #[allow(dead_code)]
     pub fn to_pgn(&self) -> PgnGame {

@@ -25,6 +25,7 @@ pub fn position_to_iccs(pos: Position) -> String {
 /// # Examples
 /// ```
 /// use cn_chess_tui::notation::iccs::iccs_to_position;
+/// use cn_chess_tui::types::Position;
 ///
 /// assert_eq!(iccs_to_position("a0"), Some(Position::from_xy(0, 0)));
 /// assert_eq!(iccs_to_position("e9"), Some(Position::from_xy(4, 9)));
