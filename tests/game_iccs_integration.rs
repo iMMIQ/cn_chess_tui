@@ -21,9 +21,11 @@ fn test_game_multiple_moves_iccs_history() {
     let mut game = Game::new();
 
     // 炮二平五
-    game.make_move(Position::from_xy(7, 7), Position::from_xy(4, 7)).unwrap();
+    game.make_move(Position::from_xy(7, 7), Position::from_xy(4, 7))
+        .unwrap();
     // 马８进７
-    game.make_move(Position::from_xy(7, 0), Position::from_xy(6, 2)).unwrap();
+    game.make_move(Position::from_xy(7, 0), Position::from_xy(6, 2))
+        .unwrap();
 
     let moves = game.get_moves_with_iccs();
     assert_eq!(moves.len(), 2);

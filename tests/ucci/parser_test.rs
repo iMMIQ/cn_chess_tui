@@ -27,9 +27,12 @@ fn test_parse_incomplete_bestmove() {
 
 #[test]
 fn test_parse_complex_info() {
-    let resp = parse_response("info depth 7 score 4 pv c3c4 h9i7 c2d4 h7e7 h0g2 i9h9 i0h0").unwrap();
+    let resp =
+        parse_response("info depth 7 score 4 pv c3c4 h9i7 c2d4 h7e7 h0g2 i9h9 i0h0").unwrap();
     match resp {
-        UcciResponse::Info { depth, score, pv, .. } => {
+        UcciResponse::Info {
+            depth, score, pv, ..
+        } => {
             assert_eq!(depth, Some(7));
             assert_eq!(score, Some(4));
             assert_eq!(pv.len(), 7);

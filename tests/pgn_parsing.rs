@@ -1,6 +1,6 @@
 //! Tests for PGN (Portable Game Notation) parsing
 
-use cn_chess_tui::pgn::{PgnGame, PgnGameResult, PgnMove, PgnTag, split_quoted};
+use cn_chess_tui::pgn::{split_quoted, PgnGame, PgnGameResult, PgnMove, PgnTag};
 
 #[test]
 fn test_pgn_tag_parse_simple() {
@@ -22,7 +22,10 @@ fn test_pgn_tag_parse_all_standard_tags() {
         ("Time", "14:30:00"),
         ("UTCDate", "2023.01.15"),
         ("UTCTime", "06:30:00"),
-        ("FEN", "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"),
+        (
+            "FEN",
+            "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1",
+        ),
     ];
 
     for (key, value) in tags {
@@ -63,18 +66,9 @@ fn test_pgn_tag_display() {
 
 #[test]
 fn test_pgn_game_result_parse() {
-    assert_eq!(
-        PgnGameResult::parse("1-0"),
-        Some(PgnGameResult::RedWins)
-    );
-    assert_eq!(
-        PgnGameResult::parse("0-1"),
-        Some(PgnGameResult::BlackWins)
-    );
-    assert_eq!(
-        PgnGameResult::parse("1/2-1/2"),
-        Some(PgnGameResult::Draw)
-    );
+    assert_eq!(PgnGameResult::parse("1-0"), Some(PgnGameResult::RedWins));
+    assert_eq!(PgnGameResult::parse("0-1"), Some(PgnGameResult::BlackWins));
+    assert_eq!(PgnGameResult::parse("1/2-1/2"), Some(PgnGameResult::Draw));
     assert_eq!(PgnGameResult::parse("*"), Some(PgnGameResult::Unknown));
     assert_eq!(PgnGameResult::parse("invalid"), None);
 }
@@ -119,7 +113,10 @@ h2e2 h9g7 h3g3 i9h9 b0c2 b9a7 c2e4 c7e5 g0g3 i9h9
 
     let game = PgnGame::parse(pgn).unwrap();
     assert_eq!(game.tags.len(), 11);
-    assert_eq!(game.get_tag("Event"), Some(&"World Championship".to_string()));
+    assert_eq!(
+        game.get_tag("Event"),
+        Some(&"World Championship".to_string())
+    );
     assert_eq!(game.get_tag("Red"), Some(&"Hu Ronghua".to_string()));
     assert_eq!(game.get_tag("Black"), Some(&"Liu Dahua".to_string()));
     assert_eq!(game.moves.len(), 10);
@@ -190,14 +187,8 @@ fn test_pgn_game_get_tag() {
     game.set_tag("Event", "Championship");
     game.set_tag("Red", "Player1");
 
-    assert_eq!(
-        game.get_tag("Event"),
-        Some(&"Championship".to_string())
-    );
-    assert_eq!(
-        game.get_tag("Red"),
-        Some(&"Player1".to_string())
-    );
+    assert_eq!(game.get_tag("Event"), Some(&"Championship".to_string()));
+    assert_eq!(game.get_tag("Red"), Some(&"Player1".to_string()));
     assert_eq!(game.get_tag("NonExistent"), None);
 }
 
@@ -266,7 +257,10 @@ fn test_split_quoted_simple() {
 #[test]
 fn test_split_quoted_multiple() {
     let parts = split_quoted(r#"key "value with spaces" another "more values""#, ' ').unwrap();
-    assert_eq!(parts, vec!["key", "\"value with spaces\"", "another", "\"more values\""]);
+    assert_eq!(
+        parts,
+        vec!["key", "\"value with spaces\"", "another", "\"more values\""]
+    );
 }
 
 #[test]

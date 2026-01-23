@@ -1,7 +1,4 @@
-use cn_chess_tui::{
-    Game, Position,
-    notation::chinese::move_to_chinese_with_context,
-};
+use cn_chess_tui::{notation::chinese::move_to_chinese_with_context, Game, Position};
 
 #[test]
 fn test_soldier_ambiguity_two_on_same_file() {
@@ -12,8 +9,14 @@ fn test_soldier_ambiguity_two_on_same_file() {
 
     // Remove the soldier at (4, 6) from initial position and add two soldiers on file 5
     game.board_mut().remove_piece(Position::from_xy(4, 6)); // Remove initial soldier
-    game.board_mut().place_piece(Position::from_xy(4, 5), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
-    game.board_mut().place_piece(Position::from_xy(4, 3), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
+    game.board_mut().place_piece(
+        Position::from_xy(4, 5),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
+    game.board_mut().place_piece(
+        Position::from_xy(4, 3),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
 
     // The soldier at (4, 5) is the rear soldier (后兵)
     let piece = cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier);
@@ -32,9 +35,18 @@ fn test_soldier_ambiguity_three_on_same_file() {
 
     // Remove the soldier at (4, 6) and add three soldiers
     game.board_mut().remove_piece(Position::from_xy(4, 6));
-    game.board_mut().place_piece(Position::from_xy(4, 5), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
-    game.board_mut().place_piece(Position::from_xy(4, 3), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
-    game.board_mut().place_piece(Position::from_xy(4, 1), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
+    game.board_mut().place_piece(
+        Position::from_xy(4, 5),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
+    game.board_mut().place_piece(
+        Position::from_xy(4, 3),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
+    game.board_mut().place_piece(
+        Position::from_xy(4, 1),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
 
     // The middle soldier should be "二兵"
     let piece = cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier);
@@ -66,8 +78,14 @@ fn test_front_soldier_ambiguity() {
     let mut game = Game::from_fen(fen).expect("Invalid FEN");
 
     game.board_mut().remove_piece(Position::from_xy(4, 6));
-    game.board_mut().place_piece(Position::from_xy(4, 5), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
-    game.board_mut().place_piece(Position::from_xy(4, 3), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
+    game.board_mut().place_piece(
+        Position::from_xy(4, 5),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
+    game.board_mut().place_piece(
+        Position::from_xy(4, 3),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
 
     // The soldier at (4, 3) is the front soldier (前兵)
     let piece = cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier);
@@ -85,11 +103,26 @@ fn test_five_soldiers_on_same_file() {
     let mut game = Game::from_fen(fen).expect("Invalid FEN");
 
     game.board_mut().remove_piece(Position::from_xy(4, 6));
-    game.board_mut().place_piece(Position::from_xy(4, 5), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
-    game.board_mut().place_piece(Position::from_xy(4, 4), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
-    game.board_mut().place_piece(Position::from_xy(4, 3), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
-    game.board_mut().place_piece(Position::from_xy(4, 2), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
-    game.board_mut().place_piece(Position::from_xy(4, 1), cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier));
+    game.board_mut().place_piece(
+        Position::from_xy(4, 5),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
+    game.board_mut().place_piece(
+        Position::from_xy(4, 4),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
+    game.board_mut().place_piece(
+        Position::from_xy(4, 3),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
+    game.board_mut().place_piece(
+        Position::from_xy(4, 2),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
+    game.board_mut().place_piece(
+        Position::from_xy(4, 1),
+        cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier),
+    );
 
     // Test all positions
     let test_cases = vec![
@@ -104,6 +137,10 @@ fn test_five_soldiers_on_same_file() {
         let piece = cn_chess_tui::Piece::red(cn_chess_tui::PieceType::Soldier);
         let to = Position::from_xy(from.x, from.y - 1); // Move forward
         let notation = move_to_chinese_with_context(&game, piece, from, to);
-        assert_eq!(notation, expected, "Failed for position ({}, {})", from.x, from.y);
+        assert_eq!(
+            notation, expected,
+            "Failed for position ({}, {})",
+            from.x, from.y
+        );
     }
 }

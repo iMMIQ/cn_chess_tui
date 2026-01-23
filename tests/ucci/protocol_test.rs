@@ -38,7 +38,12 @@ fn test_bestmove_response() {
         resign: false,
     };
     match resp {
-        UcciResponse::BestMove { mv, ponder, draw, resign } => {
+        UcciResponse::BestMove {
+            mv,
+            ponder,
+            draw,
+            resign,
+        } => {
             assert_eq!(mv, "h2e2");
             assert_eq!(ponder, Some("h9g7".to_string()));
             assert_eq!(draw, false);

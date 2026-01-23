@@ -3,8 +3,8 @@
 /// Engine state in UCCI protocol
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EngineState {
-    Boot,   // Before ucci command
-    Idle,   // Waiting for commands
+    Boot,     // Before ucci command
+    Idle,     // Waiting for commands
     Thinking, // Searching for a move
 }
 
@@ -12,15 +12,32 @@ pub enum EngineState {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UcciCommand {
     Ucci,
-    SetOption { name: String, value: Option<String> },
-    Position { fen: String, moves: Vec<String> },
-    BanMoves { moves: Vec<String> },
-    Go { mode: GoMode, ponder: bool, draw: bool },
+    SetOption {
+        name: String,
+        value: Option<String>,
+    },
+    Position {
+        fen: String,
+        moves: Vec<String>,
+    },
+    BanMoves {
+        moves: Vec<String>,
+    },
+    Go {
+        mode: GoMode,
+        ponder: bool,
+        draw: bool,
+    },
     Stop,
-    PonderHit { draw: bool },
+    PonderHit {
+        draw: bool,
+    },
     IsReady,
     Quit,
-    Probe { fen: String, moves: Vec<String> },
+    Probe {
+        fen: String,
+        moves: Vec<String>,
+    },
 }
 
 /// Go command modes
@@ -42,7 +59,10 @@ pub enum GoMode {
 /// UCCI responses from engine to interface
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UcciResponse {
-    Id { field: String, value: String },
+    Id {
+        field: String,
+        value: String,
+    },
     Option {
         name: String,
         type_: OptionType,

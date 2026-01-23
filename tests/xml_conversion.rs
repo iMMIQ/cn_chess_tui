@@ -78,11 +78,7 @@ fn test_escape_unescape_roundtrip() {
     for original in test_strings {
         let escaped = escape_xml(original);
         let unescaped = unescape_xml(&escaped);
-        assert_eq!(
-            original, unescaped,
-            "Roundtrip failed for: {}",
-            original
-        );
+        assert_eq!(original, unescaped, "Roundtrip failed for: {}", original);
     }
 }
 
@@ -492,7 +488,10 @@ fn test_xml_to_pgn_preserves_all_tags() {
 
     let game = xml_to_pgn(xml).expect("Failed to parse XML");
 
-    assert_eq!(game.get_tag("Event"), Some(&"World Championship".to_string()));
+    assert_eq!(
+        game.get_tag("Event"),
+        Some(&"World Championship".to_string())
+    );
     assert_eq!(game.get_tag("Site"), Some(&"Beijing".to_string()));
     assert_eq!(game.get_tag("Date"), Some(&"2023.01.15".to_string()));
     assert_eq!(game.get_tag("Round"), Some(&"1".to_string()));

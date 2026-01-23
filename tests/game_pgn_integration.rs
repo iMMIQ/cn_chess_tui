@@ -6,9 +6,11 @@ fn test_game_to_pgn() {
 
     // Make a few moves
     // 炮二平五 (Cannon from H7 to E7)
-    game.make_move(Position::from_xy(7, 7), Position::from_xy(4, 7)).unwrap();
+    game.make_move(Position::from_xy(7, 7), Position::from_xy(4, 7))
+        .unwrap();
     // 马８进７ (Horse from H0 to G2)
-    game.make_move(Position::from_xy(7, 0), Position::from_xy(6, 2)).unwrap();
+    game.make_move(Position::from_xy(7, 0), Position::from_xy(6, 2))
+        .unwrap();
 
     // Convert to PGN
     let pgn_game = game.to_pgn();
@@ -32,13 +34,13 @@ fn test_game_to_pgn_with_result() {
     let mut game = Game::new();
 
     // Make some moves
-    game.make_move(Position::from_xy(7, 7), Position::from_xy(4, 7)).unwrap();
-    game.make_move(Position::from_xy(7, 0), Position::from_xy(6, 2)).unwrap();
+    game.make_move(Position::from_xy(7, 7), Position::from_xy(4, 7))
+        .unwrap();
+    game.make_move(Position::from_xy(7, 0), Position::from_xy(6, 2))
+        .unwrap();
 
     // Force a checkmate state for testing
-    game.force_state_for_testing(cn_chess_tui::GameState::Checkmate(
-        cn_chess_tui::Color::Red,
-    ));
+    game.force_state_for_testing(cn_chess_tui::GameState::Checkmate(cn_chess_tui::Color::Red));
 
     // Convert to PGN
     let pgn_game = game.to_pgn();
@@ -77,7 +79,8 @@ fn test_game_to_pgn_stalemate() {
     let mut game = Game::new();
 
     // Make a move
-    game.make_move(Position::from_xy(7, 7), Position::from_xy(4, 7)).unwrap();
+    game.make_move(Position::from_xy(7, 7), Position::from_xy(4, 7))
+        .unwrap();
 
     // Force a stalemate state for testing
     game.force_state_for_testing(cn_chess_tui::GameState::Stalemate);

@@ -365,7 +365,12 @@ mod tests {
     fn test_parse_bestmove_simple() {
         let resp = parse_response("bestmove h2e2").unwrap();
         match resp {
-            UcciResponse::BestMove { mv, ponder, draw, resign } => {
+            UcciResponse::BestMove {
+                mv,
+                ponder,
+                draw,
+                resign,
+            } => {
                 assert_eq!(mv, "h2e2");
                 assert_eq!(ponder, None);
                 assert_eq!(draw, false);
@@ -379,7 +384,12 @@ mod tests {
     fn test_parse_bestmove_with_ponder() {
         let resp = parse_response("bestmove h2e2 ponder h9g7").unwrap();
         match resp {
-            UcciResponse::BestMove { mv, ponder, draw, resign } => {
+            UcciResponse::BestMove {
+                mv,
+                ponder,
+                draw,
+                resign,
+            } => {
                 assert_eq!(mv, "h2e2");
                 assert_eq!(ponder, Some("h9g7".to_string()));
                 assert_eq!(draw, false);
@@ -393,7 +403,9 @@ mod tests {
     fn test_parse_bestmove_draw() {
         let resp = parse_response("bestmove h2e2 draw").unwrap();
         match resp {
-            UcciResponse::BestMove { mv, draw, resign, .. } => {
+            UcciResponse::BestMove {
+                mv, draw, resign, ..
+            } => {
                 assert_eq!(mv, "h2e2");
                 assert_eq!(draw, true);
                 assert_eq!(resign, false);
@@ -406,7 +418,9 @@ mod tests {
     fn test_parse_info_depth() {
         let resp = parse_response("info depth 6 score 4 pv b0c2 b9c7").unwrap();
         match resp {
-            UcciResponse::Info { depth, score, pv, .. } => {
+            UcciResponse::Info {
+                depth, score, pv, ..
+            } => {
                 assert_eq!(depth, Some(6));
                 assert_eq!(score, Some(4));
                 assert_eq!(pv, vec!["b0c2", "b9c7"]);
@@ -431,7 +445,12 @@ mod tests {
     fn test_parse_option_check() {
         let resp = parse_response("option usemillisec type check default false").unwrap();
         match resp {
-            UcciResponse::Option { name, type_, default, .. } => {
+            UcciResponse::Option {
+                name,
+                type_,
+                default,
+                ..
+            } => {
                 assert_eq!(name, "usemillisec");
                 assert_eq!(type_, OptionType::Check);
                 assert_eq!(default, Some("false".to_string()));
@@ -444,7 +463,14 @@ mod tests {
     fn test_parse_option_spin() {
         let resp = parse_response("option hashsize type spin min 0 max 2048 default 256").unwrap();
         match resp {
-            UcciResponse::Option { name, type_, min, max, default, .. } => {
+            UcciResponse::Option {
+                name,
+                type_,
+                min,
+                max,
+                default,
+                ..
+            } => {
                 assert_eq!(name, "hashsize");
                 assert_eq!(type_, OptionType::Spin);
                 assert_eq!(min, Some(0));
@@ -457,9 +483,18 @@ mod tests {
 
     #[test]
     fn test_parse_option_combo() {
-        let resp = parse_response("option idle type combo var none var small var medium var large default large").unwrap();
+        let resp = parse_response(
+            "option idle type combo var none var small var medium var large default large",
+        )
+        .unwrap();
         match resp {
-            UcciResponse::Option { name, type_, vars, default, .. } => {
+            UcciResponse::Option {
+                name,
+                type_,
+                vars,
+                default,
+                ..
+            } => {
                 assert_eq!(name, "idle");
                 assert_eq!(type_, OptionType::Combo);
                 assert_eq!(vars, vec!["none", "small", "medium", "large"]);

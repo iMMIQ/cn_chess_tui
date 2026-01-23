@@ -134,7 +134,10 @@ fn test_serialize_probe_no_moves() {
         fen: "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1".to_string(),
         moves: vec![],
     };
-    assert_eq!(serialize(&cmd), "probe fen rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1");
+    assert_eq!(
+        serialize(&cmd),
+        "probe fen rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+    );
 }
 
 #[test]
@@ -143,7 +146,10 @@ fn test_serialize_probe_with_moves() {
         fen: "4k4/9/9/9/9/9/9/9/4K4 w - - 0 1".to_string(),
         moves: vec!["h0e3".to_string()],
     };
-    assert_eq!(serialize(&cmd), "probe fen 4k4/9/9/9/9/9/9/9/4K4 w - - 0 1 moves h0e3");
+    assert_eq!(
+        serialize(&cmd),
+        "probe fen 4k4/9/9/9/9/9/9/9/4K4 w - - 0 1 moves h0e3"
+    );
 }
 
 #[test]

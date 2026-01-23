@@ -357,12 +357,8 @@ impl Game {
 
         // Add move history using Chinese notation with context
         for record in &self.move_history {
-            let chinese_notation = move_to_chinese_with_context(
-                self,
-                record.piece,
-                record.mv.from,
-                record.mv.to,
-            );
+            let chinese_notation =
+                move_to_chinese_with_context(self, record.piece, record.mv.from, record.mv.to);
             pgn_game.add_move(chinese_notation);
         }
 

@@ -11,8 +11,8 @@
 //! - For horizontal moves: destination is file number (e.g., C2.5)
 //! - For forward/backward moves: destination is number of steps (e.g., H2+3)
 
+use super::chinese::{get_movement_direction, position_to_file_number, MovementDirection};
 use crate::types::{Piece, PieceType, Position};
-use super::chinese::{MovementDirection, get_movement_direction, position_to_file_number};
 
 /// Convert a piece type to its WXF letter representation
 ///
@@ -28,13 +28,13 @@ use super::chinese::{MovementDirection, get_movement_direction, position_to_file
 #[allow(dead_code)]
 pub fn piece_to_wxf_letter(piece_type: PieceType) -> &'static str {
     match piece_type {
-        PieceType::General => "K",   // King
+        PieceType::General => "K", // King
         PieceType::Advisor => "A",
         PieceType::Elephant => "E",
         PieceType::Horse => "H",
-        PieceType::Chariot => "R",   // Rook
+        PieceType::Chariot => "R", // Rook
         PieceType::Cannon => "C",
-        PieceType::Soldier => "P",   // Pawn
+        PieceType::Soldier => "P", // Pawn
     }
 }
 
@@ -261,13 +261,13 @@ mod tests {
         // C2.5: Cannon from file 2 horizontally to file 5
         let piece = Piece::new(PieceType::Cannon, Color::Red);
         let from = Position::from_xy(7, 7); // File 2 for Red (9-7=2)
-        let to = Position::from_xy(4, 7);   // File 5 for Red (9-4=5)
+        let to = Position::from_xy(4, 7); // File 5 for Red (9-4=5)
         assert_eq!(move_to_wxf(piece, from, to), "C2.5");
 
         // R5.3: Chariot from file 5 horizontally to file 3
         let piece = Piece::new(PieceType::Chariot, Color::Red);
         let from = Position::from_xy(4, 5); // File 5 for Red (9-4=5)
-        let to = Position::from_xy(6, 5);   // File 3 for Red (9-6=3)
+        let to = Position::from_xy(6, 5); // File 3 for Red (9-6=3)
         assert_eq!(move_to_wxf(piece, from, to), "R5.3");
     }
 
@@ -276,13 +276,13 @@ mod tests {
         // H2+3: Horse from file 2 forward 3 steps
         let piece = Piece::new(PieceType::Horse, Color::Red);
         let from = Position::from_xy(7, 9); // File 2
-        let to = Position::from_xy(7, 6);   // Forward 3 steps
+        let to = Position::from_xy(7, 6); // Forward 3 steps
         assert_eq!(move_to_wxf(piece, from, to), "H2+3");
 
         // P5+1: Soldier from file 5 forward 1 step
         let piece = Piece::new(PieceType::Soldier, Color::Red);
         let from = Position::from_xy(4, 6); // File 5
-        let to = Position::from_xy(4, 5);   // Forward 1 step
+        let to = Position::from_xy(4, 5); // Forward 1 step
         assert_eq!(move_to_wxf(piece, from, to), "P5+1");
     }
 
@@ -291,13 +291,13 @@ mod tests {
         // C5-2: Cannon from file 5 backward 2 steps
         let piece = Piece::new(PieceType::Cannon, Color::Red);
         let from = Position::from_xy(4, 5); // File 5
-        let to = Position::from_xy(4, 7);   // Backward 2 steps
+        let to = Position::from_xy(4, 7); // Backward 2 steps
         assert_eq!(move_to_wxf(piece, from, to), "C5-2");
 
         // E7-2: Elephant from file 7 backward 2 steps
         let piece = Piece::new(PieceType::Elephant, Color::Red);
         let from = Position::from_xy(2, 5); // File 7
-        let to = Position::from_xy(2, 7);   // Backward 2 steps
+        let to = Position::from_xy(2, 7); // Backward 2 steps
         assert_eq!(move_to_wxf(piece, from, to), "E7-2");
     }
 
@@ -307,13 +307,13 @@ mod tests {
         // C5.6: Black cannon from file 5 horizontally to file 6
         let piece = Piece::new(PieceType::Cannon, Color::Black);
         let from = Position::from_xy(4, 2); // File 5 for Black
-        let to = Position::from_xy(5, 2);   // File 6 for Black
+        let to = Position::from_xy(5, 2); // File 6 for Black
         assert_eq!(move_to_wxf(piece, from, to), "C5.6");
 
         // H3+2: Black horse from file 3 forward 2 steps
         let piece = Piece::new(PieceType::Horse, Color::Black);
         let from = Position::from_xy(2, 0); // File 3
-        let to = Position::from_xy(2, 2);   // Forward 2 steps
+        let to = Position::from_xy(2, 2); // Forward 2 steps
         assert_eq!(move_to_wxf(piece, from, to), "H3+2");
     }
 
@@ -321,15 +321,24 @@ mod tests {
     fn test_parse_wxf_move() {
         // Parse horizontal move: C2.5
         let result = parse_wxf_move("C2.5");
-        assert_eq!(result, Some((PieceType::Cannon, 2, MovementDirection::Horizontal, 5)));
+        assert_eq!(
+            result,
+            Some((PieceType::Cannon, 2, MovementDirection::Horizontal, 5))
+        );
 
         // Parse forward move: H2+3
         let result = parse_wxf_move("H2+3");
-        assert_eq!(result, Some((PieceType::Horse, 2, MovementDirection::Forward, 3)));
+        assert_eq!(
+            result,
+            Some((PieceType::Horse, 2, MovementDirection::Forward, 3))
+        );
 
         // Parse backward move: C5-2
         let result = parse_wxf_move("C5-2");
-        assert_eq!(result, Some((PieceType::Cannon, 5, MovementDirection::Backward, 2)));
+        assert_eq!(
+            result,
+            Some((PieceType::Cannon, 5, MovementDirection::Backward, 2))
+        );
 
         // Parse all piece types
         assert_eq!(
@@ -356,9 +365,9 @@ mod tests {
         // Invalid formats
         assert_eq!(parse_wxf_move(""), None);
         assert_eq!(parse_wxf_move("X2.5"), None); // Invalid piece
-        assert_eq!(parse_wxf_move("C2"), None);   // Missing destination
+        assert_eq!(parse_wxf_move("C2"), None); // Missing destination
         assert_eq!(parse_wxf_move("C2.5.3"), None); // Too many parts
-        assert_eq!(parse_wxf_move("C0.5"), None);  // Invalid file number
+        assert_eq!(parse_wxf_move("C0.5"), None); // Invalid file number
         assert_eq!(parse_wxf_move("C10.5"), None); // Invalid file number
     }
 
@@ -385,7 +394,10 @@ mod tests {
         assert_eq!(wxf, "H2+3");
 
         let parsed = parse_wxf_move(&wxf);
-        assert_eq!(parsed, Some((PieceType::Horse, 2, MovementDirection::Forward, 3)));
+        assert_eq!(
+            parsed,
+            Some((PieceType::Horse, 2, MovementDirection::Forward, 3))
+        );
 
         // Test backward move
         let piece = Piece::new(PieceType::Cannon, Color::Red);
@@ -395,6 +407,9 @@ mod tests {
         assert_eq!(wxf, "C5-2");
 
         let parsed = parse_wxf_move(&wxf);
-        assert_eq!(parsed, Some((PieceType::Cannon, 5, MovementDirection::Backward, 2)));
+        assert_eq!(
+            parsed,
+            Some((PieceType::Cannon, 5, MovementDirection::Backward, 2))
+        );
     }
 }

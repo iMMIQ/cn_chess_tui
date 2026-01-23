@@ -71,28 +71,32 @@ impl UcciClient {
         // Read responses until ucciok
         loop {
             let line = self.engine.read_line()?;
-            let resp = parse_response(&line).map_err(|_| EngineError::ReadFailed(
-                std::io::Error::new(std::io::ErrorKind::InvalidData, "Parse error"),
-            ))?;
+            let resp = parse_response(&line).map_err(|_| {
+                EngineError::ReadFailed(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Parse error",
+                ))
+            })?;
 
             match resp {
                 crate::ucci::UcciResponse::UcciOk => {
-                    self.state.on_response(&crate::ucci::UcciResponse::UcciOk).map_err(
-                        |e| EngineError::WriteFailed(std::io::Error::other(
-                            format!("State error: {:?}", e),
-                        )),
-                    )?;
+                    self.state
+                        .on_response(&crate::ucci::UcciResponse::UcciOk)
+                        .map_err(|e| {
+                            EngineError::WriteFailed(std::io::Error::other(format!(
+                                "State error: {:?}",
+                                e
+                            )))
+                        })?;
                     break;
                 }
-                crate::ucci::UcciResponse::Id { field, value } => {
-                    match field.as_str() {
-                        "name" => self.info.name = value,
-                        "author" => self.info.author = Some(value),
-                        "copyright" => self.info.copyright = Some(value),
-                        "user" => self.info.user = Some(value),
-                        _ => {}
-                    }
-                }
+                crate::ucci::UcciResponse::Id { field, value } => match field.as_str() {
+                    "name" => self.info.name = value,
+                    "author" => self.info.author = Some(value),
+                    "copyright" => self.info.copyright = Some(value),
+                    "user" => self.info.user = Some(value),
+                    _ => {}
+                },
                 crate::ucci::UcciResponse::Option {
                     name,
                     type_,
@@ -134,9 +138,9 @@ impl UcciClient {
             name: name.to_string(),
             value: Some(value.to_string()),
         };
-        self.state.transition(&cmd).map_err(|e| {
-            EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e)))
-        })?;
+        self.state
+            .transition(&cmd)
+            .map_err(|e| EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e))))?;
         self.engine.send_command(&cmd.serialize())
     }
 
@@ -147,9 +151,9 @@ impl UcciClient {
             fen: fen.to_string(),
             moves: moves.to_vec(),
         };
-        self.state.transition(&cmd).map_err(|e| {
-            EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e)))
-        })?;
+        self.state
+            .transition(&cmd)
+            .map_err(|e| EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e))))?;
         self.engine.send_command(&cmd.serialize())
     }
 
@@ -159,9 +163,9 @@ impl UcciClient {
         let cmd = UcciCommand::BanMoves {
             moves: moves.to_vec(),
         };
-        self.state.transition(&cmd).map_err(|e| {
-            EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e)))
-        })?;
+        self.state
+            .transition(&cmd)
+            .map_err(|e| EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e))))?;
         self.engine.send_command(&cmd.serialize())
     }
 
@@ -174,9 +178,9 @@ impl UcciClient {
             ponder: false,
             draw: false,
         };
-        self.state.transition(&cmd).map_err(|e| {
-            EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e)))
-        })?;
+        self.state
+            .transition(&cmd)
+            .map_err(|e| EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e))))?;
         self.engine.send_command(&cmd.serialize())
     }
 
@@ -196,9 +200,9 @@ impl UcciClient {
             ponder: false,
             draw: false,
         };
-        self.state.transition(&cmd).map_err(|e| {
-            EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e)))
-        })?;
+        self.state
+            .transition(&cmd)
+            .map_err(|e| EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e))))?;
         self.engine.send_command(&cmd.serialize())
     }
 
@@ -211,9 +215,9 @@ impl UcciClient {
             ponder: false,
             draw: false,
         };
-        self.state.transition(&cmd).map_err(|e| {
-            EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e)))
-        })?;
+        self.state
+            .transition(&cmd)
+            .map_err(|e| EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e))))?;
         self.engine.send_command(&cmd.serialize())
     }
 
@@ -230,9 +234,12 @@ impl UcciClient {
         // Read info messages until bestmove
         loop {
             let line = self.engine.read_line()?;
-            let resp = parse_response(&line).map_err(|_| EngineError::ReadFailed(
-                std::io::Error::new(std::io::ErrorKind::InvalidData, "Parse error"),
-            ))?;
+            let resp = parse_response(&line).map_err(|_| {
+                EngineError::ReadFailed(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Parse error",
+                ))
+            })?;
 
             match resp {
                 crate::ucci::UcciResponse::BestMove {
@@ -250,18 +257,14 @@ impl UcciClient {
                     };
 
                     self.state.on_response(&resp).map_err(|e| {
-                        EngineError::WriteFailed(std::io::Error::other(
-                            format!("{:?}", e),
-                        ))
+                        EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e)))
                     })?;
 
                     return Ok(result);
                 }
                 crate::ucci::UcciResponse::NoBestMove => {
                     self.state.on_response(&resp).map_err(|e| {
-                        EngineError::WriteFailed(std::io::Error::other(
-                            format!("{:?}", e),
-                        ))
+                        EngineError::WriteFailed(std::io::Error::other(format!("{:?}", e)))
                     })?;
                     return Ok(MoveResult::NoMove);
                 }
@@ -326,9 +329,10 @@ impl UcciClient {
 
     fn ensure_idle(&self) -> Result<(), EngineError> {
         if !self.state.is_idle() {
-            return Err(EngineError::WriteFailed(std::io::Error::other(
-                format!("Not idle, current state: {:?}", self.state.current_state()),
-            )));
+            return Err(EngineError::WriteFailed(std::io::Error::other(format!(
+                "Not idle, current state: {:?}",
+                self.state.current_state()
+            ))));
         }
         Ok(())
     }

@@ -142,7 +142,10 @@ pub fn pgn_to_xml(game: &PgnGame) -> String {
     for tag in &game.tags {
         let escaped_key = escape_xml(&tag.key);
         let escaped_value = escape_xml(&tag.value);
-        xml.push_str(&format!("    <{}>{}</{}>\n", escaped_key, escaped_value, escaped_key));
+        xml.push_str(&format!(
+            "    <{}>{}</{}>\n",
+            escaped_key, escaped_value, escaped_key
+        ));
     }
     xml.push_str("  </tags>\n");
 
@@ -157,7 +160,10 @@ pub fn pgn_to_xml(game: &PgnGame) -> String {
     }
 
     // Result
-    xml.push_str(&format!("  <result>{}</result>\n", game.result.to_pgn_string()));
+    xml.push_str(&format!(
+        "  <result>{}</result>\n",
+        game.result.to_pgn_string()
+    ));
 
     xml.push_str("</pgn>");
     xml
@@ -220,7 +226,10 @@ pub fn xml_to_pgn(xml: &str) -> Option<PgnGame> {
                                 if in_moves && tag_name == "move" {
                                     game.add_move(unescape_xml(current_content.trim()));
                                 } else if in_tags && !current_tag_name.is_empty() {
-                                    game.set_tag(current_tag_name.clone(), unescape_xml(&current_content));
+                                    game.set_tag(
+                                        current_tag_name.clone(),
+                                        unescape_xml(&current_content),
+                                    );
                                 }
                             }
                         }

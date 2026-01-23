@@ -6,9 +6,9 @@ pub mod game;
 pub mod notation;
 pub mod pgn;
 pub mod types;
+pub mod ucci;
 pub mod ui;
 pub mod xml;
-pub mod ucci;
 
 pub use board::Board;
 pub use fen::{board_to_fen, fen_to_board, FenError};
@@ -26,4 +26,6 @@ pub use ui::UI;
 
 // Re-export notation types
 pub use notation::iccs::{iccs_to_move, iccs_to_position, move_to_iccs, position_to_iccs};
-pub use notation::{move_to_chinese, move_to_chinese_with_context, piece_to_chinese, MovementDirection};
+pub use notation::{
+    move_to_chinese, move_to_chinese_with_context, piece_to_chinese, MovementDirection,
+};

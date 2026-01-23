@@ -261,7 +261,11 @@ impl PgnGame {
             }
         }
 
-        Some(PgnGame { tags, moves, result })
+        Some(PgnGame {
+            tags,
+            moves,
+            result,
+        })
     }
 
     /// Get a tag value by key
@@ -500,18 +504,9 @@ mod tests {
 
     #[test]
     fn test_pgn_game_result_parse() {
-        assert_eq!(
-            PgnGameResult::parse("1-0"),
-            Some(PgnGameResult::RedWins)
-        );
-        assert_eq!(
-            PgnGameResult::parse("0-1"),
-            Some(PgnGameResult::BlackWins)
-        );
-        assert_eq!(
-            PgnGameResult::parse("1/2-1/2"),
-            Some(PgnGameResult::Draw)
-        );
+        assert_eq!(PgnGameResult::parse("1-0"), Some(PgnGameResult::RedWins));
+        assert_eq!(PgnGameResult::parse("0-1"), Some(PgnGameResult::BlackWins));
+        assert_eq!(PgnGameResult::parse("1/2-1/2"), Some(PgnGameResult::Draw));
         assert_eq!(PgnGameResult::parse("*"), Some(PgnGameResult::Unknown));
     }
 

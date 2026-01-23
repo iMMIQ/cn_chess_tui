@@ -38,10 +38,9 @@ impl UcciStateMachine {
         match &self.state {
             EngineState::Boot => matches!(cmd, UcciCommand::Ucci),
             EngineState::Idle => !matches!(cmd, UcciCommand::PonderHit { .. }),
-            EngineState::Thinking => matches!(
-                cmd,
-                UcciCommand::Stop | UcciCommand::PonderHit { .. }
-            ),
+            EngineState::Thinking => {
+                matches!(cmd, UcciCommand::Stop | UcciCommand::PonderHit { .. })
+            }
         }
     }
 
@@ -224,7 +223,8 @@ mod tests {
         })
         .unwrap();
         assert!(!sm.can_send(&UcciCommand::Position {
-            fen: "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1".to_string(),
+            fen: "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+                .to_string(),
             moves: vec![],
         }));
     }

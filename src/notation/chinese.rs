@@ -9,8 +9,8 @@
 //! - Directions: 进 (forward), 退 (backward), 平 (horizontal/same rank)
 //! - Uses Chinese numerals: 一二三四五六七八九
 
-use crate::types::{Color, Piece, PieceType, Position};
 use crate::board::Board;
+use crate::types::{Color, Piece, PieceType, Position};
 use crate::Game;
 
 /// Direction of piece movement in Chinese notation
@@ -44,7 +44,7 @@ pub enum MovementDirection {
 #[allow(dead_code)]
 pub fn position_to_file_number(pos: Position, color: Color) -> usize {
     match color {
-        Color::Red => 9 - pos.x,  // Right-to-left for Red
+        Color::Red => 9 - pos.x,   // Right-to-left for Red
         Color::Black => pos.x + 1, // Left-to-right for Black
     }
 }
@@ -102,7 +102,7 @@ pub fn get_movement_direction(from: Position, to: Position, color: Color) -> Mov
         MovementDirection::Horizontal
     } else {
         let is_forward = match color {
-            Color::Red => to.y < from.y, // Red moves up (decreasing y)
+            Color::Red => to.y < from.y,   // Red moves up (decreasing y)
             Color::Black => to.y > from.y, // Black moves down (increasing y)
         };
         if is_forward {
@@ -201,7 +201,10 @@ pub fn move_to_chinese(piece: Piece, from: Position, to: Position) -> String {
         file_number_to_chinese(steps)
     };
 
-    format!("{}{}{}{}", piece_name, from_chinese, dir_chinese, to_chinese)
+    format!(
+        "{}{}{}{}",
+        piece_name, from_chinese, dir_chinese, to_chinese
+    )
 }
 
 /// Find all pieces of the same type and color on the same file
@@ -241,7 +244,7 @@ fn handle_soldier_ambiguity(
         sorted.sort_by_key(|p| p.y);
 
         let (front_pos, rear_pos) = match piece.color {
-            Color::Red => (sorted[0], sorted[1]),  // Red: smaller Y is front
+            Color::Red => (sorted[0], sorted[1]), // Red: smaller Y is front
             Color::Black => (sorted[1], sorted[0]), // Black: larger Y is front
         };
 
@@ -309,7 +312,12 @@ fn handle_soldier_ambiguity(
 /// let notation = move_to_chinese_with_context(&game, piece, from, to);
 /// ```
 #[allow(dead_code)]
-pub fn move_to_chinese_with_context(game: &Game, piece: Piece, from: Position, to: Position) -> String {
+pub fn move_to_chinese_with_context(
+    game: &Game,
+    piece: Piece,
+    from: Position,
+    to: Position,
+) -> String {
     let piece_name = if piece.piece_type == PieceType::Soldier {
         // Check for soldier ambiguity
         let positions = find_pieces_on_same_file(game.board(), piece, from);
@@ -340,7 +348,10 @@ pub fn move_to_chinese_with_context(game: &Game, piece: Piece, from: Position, t
         file_number_to_chinese(steps)
     };
 
-    format!("{}{}{}{}", piece_name, from_chinese, dir_chinese, to_chinese)
+    format!(
+        "{}{}{}{}",
+        piece_name, from_chinese, dir_chinese, to_chinese
+    )
 }
 
 #[cfg(test)]
@@ -351,17 +362,35 @@ mod tests {
     #[test]
     fn test_red_file_number() {
         // Red's files are numbered 1-9 from RIGHT to LEFT
-        assert_eq!(position_to_file_number(Position::from_xy(8, 5), Color::Red), 1);
-        assert_eq!(position_to_file_number(Position::from_xy(4, 5), Color::Red), 5);
-        assert_eq!(position_to_file_number(Position::from_xy(0, 5), Color::Red), 9);
+        assert_eq!(
+            position_to_file_number(Position::from_xy(8, 5), Color::Red),
+            1
+        );
+        assert_eq!(
+            position_to_file_number(Position::from_xy(4, 5), Color::Red),
+            5
+        );
+        assert_eq!(
+            position_to_file_number(Position::from_xy(0, 5), Color::Red),
+            9
+        );
     }
 
     #[test]
     fn test_black_file_number() {
         // Black's files are numbered 1-9 from LEFT to RIGHT
-        assert_eq!(position_to_file_number(Position::from_xy(0, 5), Color::Black), 1);
-        assert_eq!(position_to_file_number(Position::from_xy(4, 5), Color::Black), 5);
-        assert_eq!(position_to_file_number(Position::from_xy(8, 5), Color::Black), 9);
+        assert_eq!(
+            position_to_file_number(Position::from_xy(0, 5), Color::Black),
+            1
+        );
+        assert_eq!(
+            position_to_file_number(Position::from_xy(4, 5), Color::Black),
+            5
+        );
+        assert_eq!(
+            position_to_file_number(Position::from_xy(8, 5), Color::Black),
+            9
+        );
     }
 
     #[test]
@@ -382,27 +411,42 @@ mod tests {
         // Horizontal movement
         let from = Position::from_xy(6, 7);
         let to = Position::from_xy(4, 7);
-        assert_eq!(get_movement_direction(from, to, Color::Red), MovementDirection::Horizontal);
+        assert_eq!(
+            get_movement_direction(from, to, Color::Red),
+            MovementDirection::Horizontal
+        );
 
         // Forward (Red moves toward smaller y)
         let from = Position::from_xy(6, 9);
         let to = Position::from_xy(6, 7);
-        assert_eq!(get_movement_direction(from, to, Color::Red), MovementDirection::Forward);
+        assert_eq!(
+            get_movement_direction(from, to, Color::Red),
+            MovementDirection::Forward
+        );
 
         // Backward (Red moves toward larger y)
         let from = Position::from_xy(6, 7);
         let to = Position::from_xy(6, 9);
-        assert_eq!(get_movement_direction(from, to, Color::Red), MovementDirection::Backward);
+        assert_eq!(
+            get_movement_direction(from, to, Color::Red),
+            MovementDirection::Backward
+        );
 
         // Forward (Black moves toward larger y)
         let from = Position::from_xy(3, 1);
         let to = Position::from_xy(4, 2);
-        assert_eq!(get_movement_direction(from, to, Color::Black), MovementDirection::Forward);
+        assert_eq!(
+            get_movement_direction(from, to, Color::Black),
+            MovementDirection::Forward
+        );
 
         // Backward (Black moves toward smaller y)
         let from = Position::from_xy(4, 2);
         let to = Position::from_xy(3, 1);
-        assert_eq!(get_movement_direction(from, to, Color::Black), MovementDirection::Backward);
+        assert_eq!(
+            get_movement_direction(from, to, Color::Black),
+            MovementDirection::Backward
+        );
     }
 
     #[test]
@@ -415,22 +459,64 @@ mod tests {
     #[test]
     fn test_piece_to_chinese() {
         // Red pieces
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::General, Color::Red)), "帅");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Advisor, Color::Red)), "仕");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Elephant, Color::Red)), "相");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Horse, Color::Red)), "马");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Chariot, Color::Red)), "车");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Cannon, Color::Red)), "炮");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Soldier, Color::Red)), "兵");
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::General, Color::Red)),
+            "帅"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Advisor, Color::Red)),
+            "仕"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Elephant, Color::Red)),
+            "相"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Horse, Color::Red)),
+            "马"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Chariot, Color::Red)),
+            "车"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Cannon, Color::Red)),
+            "炮"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Soldier, Color::Red)),
+            "兵"
+        );
 
         // Black pieces
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::General, Color::Black)), "将");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Advisor, Color::Black)), "士");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Elephant, Color::Black)), "象");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Horse, Color::Black)), "马");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Chariot, Color::Black)), "车");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Cannon, Color::Black)), "炮");
-        assert_eq!(piece_to_chinese(Piece::new(PieceType::Soldier, Color::Black)), "卒");
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::General, Color::Black)),
+            "将"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Advisor, Color::Black)),
+            "士"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Elephant, Color::Black)),
+            "象"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Horse, Color::Black)),
+            "马"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Chariot, Color::Black)),
+            "车"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Cannon, Color::Black)),
+            "炮"
+        );
+        assert_eq!(
+            piece_to_chinese(Piece::new(PieceType::Soldier, Color::Black)),
+            "卒"
+        );
     }
 
     #[test]
@@ -438,7 +524,7 @@ mod tests {
         // 炮二平五: Cannon from file 2 horizontally to file 5
         let piece = Piece::new(PieceType::Cannon, Color::Red);
         let from = Position::from_xy(7, 7); // File 2 (二) for Red (9-7=2)
-        let to = Position::from_xy(4, 7);   // File 5 (五) for Red (9-4=5)
+        let to = Position::from_xy(4, 7); // File 5 (五) for Red (9-4=5)
         assert_eq!(move_to_chinese(piece, from, to), "炮二平五");
     }
 
@@ -447,7 +533,7 @@ mod tests {
         // 马二进三: Horse from file 2 forward 3 steps
         let piece = Piece::new(PieceType::Horse, Color::Red);
         let from = Position::from_xy(7, 9); // File 2 (二) (9-7=2)
-        let to = Position::from_xy(7, 6);   // Forward 3 steps (same file)
+        let to = Position::from_xy(7, 6); // Forward 3 steps (same file)
         assert_eq!(move_to_chinese(piece, from, to), "马二进三");
     }
 
@@ -456,7 +542,7 @@ mod tests {
         // 炮五退二: Cannon from file 5 backward 2 steps
         let piece = Piece::new(PieceType::Cannon, Color::Red);
         let from = Position::from_xy(4, 5); // File 5 (五)
-        let to = Position::from_xy(4, 7);   // Backward 2 steps
+        let to = Position::from_xy(4, 7); // Backward 2 steps
         assert_eq!(move_to_chinese(piece, from, to), "炮五退二");
     }
 }

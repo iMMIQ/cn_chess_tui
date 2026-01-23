@@ -75,8 +75,7 @@ fn test_nobestmove_transitions_to_idle() {
         draw: false,
     })
     .unwrap();
-    sm.on_response(&UcciResponse::NoBestMove)
-        .unwrap();
+    sm.on_response(&UcciResponse::NoBestMove).unwrap();
     assert!(sm.is_idle());
 }
 

@@ -16,6 +16,30 @@ pub enum EngineError {
     Timeout,
 }
 
+impl std::fmt::Display for EngineError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EngineError::SpawnFailed(e) => write!(f, "Failed to spawn engine: {}", e),
+            EngineError::WriteFailed(e) => write!(f, "Failed to write to engine: {}", e),
+            EngineError::ReadFailed(e) => write!(f, "Failed to read from engine: {}", e),
+            EngineError::UnexpectedEof => write!(f, "Unexpected end of input from engine"),
+            EngineError::Crashed(code) => write!(f, "Engine crashed with exit code {}", code),
+            EngineError::Timeout => write!(f, "Engine operation timed out"),
+        }
+    }
+}
+
+impl std::error::Error for EngineError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            EngineError::SpawnFailed(e) => Some(e),
+            EngineError::WriteFailed(e) => Some(e),
+            EngineError::ReadFailed(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
 /// Manages communication with an external UCCI engine process
 pub struct EngineProcess {
     child: Child,
@@ -33,29 +57,27 @@ impl EngineProcess {
             .spawn()
             .map_err(EngineError::SpawnFailed)?;
 
-        let stdin = child
-            .stdin
-            .take()
-            .ok_or_else(|| {
-                EngineError::SpawnFailed(std::io::Error::new(
-                    std::io::ErrorKind::BrokenPipe,
-                    "Failed to open stdin",
-                ))
-            })?;
-        let stdout = child
-            .stdout
-            .take()
-            .ok_or_else(|| {
-                EngineError::SpawnFailed(std::io::Error::new(
-                    std::io::ErrorKind::BrokenPipe,
-                    "Failed to open stdout",
-                ))
-            })?;
+        let stdin = child.stdin.take().ok_or_else(|| {
+            EngineError::SpawnFailed(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "Failed to open stdin",
+            ))
+        })?;
+        let stdout = child.stdout.take().ok_or_else(|| {
+            EngineError::SpawnFailed(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "Failed to open stdout",
+            ))
+        })?;
 
         let stdin = BufWriter::new(stdin);
         let stdout = BufReader::new(stdout);
 
-        Ok(Self { child, stdin, stdout })
+        Ok(Self {
+            child,
+            stdin,
+            stdout,
+        })
     }
 
     /// Send a command to the engine
@@ -112,10 +134,12 @@ impl EngineProcess {
         }
 
         // Force kill if still running
-        self.child.kill().map_err(|_| EngineError::SpawnFailed(std::io::Error::new(
-            std::io::ErrorKind::BrokenPipe,
-            "Failed to kill engine",
-        )))?;
+        self.child.kill().map_err(|_| {
+            EngineError::SpawnFailed(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "Failed to kill engine",
+            ))
+        })?;
 
         Ok(())
     }

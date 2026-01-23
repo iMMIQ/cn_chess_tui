@@ -7,12 +7,10 @@ pub fn serialize_command(cmd: &UcciCommand) -> String {
     match cmd {
         UcciCommand::Ucci => "ucci".to_string(),
 
-        UcciCommand::SetOption { name, value } => {
-            match value {
-                Some(v) => format!("setoption {} {}", name, v),
-                None => format!("setoption {}", name),
-            }
-        }
+        UcciCommand::SetOption { name, value } => match value {
+            Some(v) => format!("setoption {} {}", name, v),
+            None => format!("setoption {}", name),
+        },
 
         UcciCommand::Position { fen, moves } => {
             if moves.is_empty() {

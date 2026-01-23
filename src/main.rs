@@ -104,8 +104,8 @@ impl App {
         let pgn_content = std::fs::read_to_string(path)?;
 
         // Parse PGN
-        let pgn_game = crate::pgn::PgnGame::parse(&pgn_content)
-            .ok_or("Failed to parse PGN file")?;
+        let pgn_game =
+            crate::pgn::PgnGame::parse(&pgn_content).ok_or("Failed to parse PGN file")?;
 
         // Create game and apply moves from PGN
         let mut game = Game::new();
@@ -138,8 +138,10 @@ impl App {
                 let to_rank = (chars[3] as i8) - (b'0' as i8) - 1;
 
                 // Validate coordinates are within board bounds
-                if (0..9).contains(&from_file) && (0..10).contains(&from_rank)
-                    && (0..9).contains(&to_file) && (0..10).contains(&to_rank)
+                if (0..9).contains(&from_file)
+                    && (0..10).contains(&from_rank)
+                    && (0..9).contains(&to_file)
+                    && (0..10).contains(&to_rank)
                 {
                     let from = Position::from_xy(from_file as usize, from_rank as usize);
                     let to = Position::from_xy(to_file as usize, to_rank as usize);

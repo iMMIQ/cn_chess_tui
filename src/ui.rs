@@ -572,7 +572,11 @@ impl UI {
                     ("┐", true)
                 } else if x == 0 && y == max_rows - 1 && max_rows == BOARD_ROWS {
                     ("└", true)
-                } else if x == max_cols - 1 && y == max_rows - 1 && max_cols == BOARD_COLS && max_rows == BOARD_ROWS {
+                } else if x == max_cols - 1
+                    && y == max_rows - 1
+                    && max_cols == BOARD_COLS
+                    && max_rows == BOARD_ROWS
+                {
                     ("┘", true)
                 } else if x == 0 {
                     ("├", false)
