@@ -96,3 +96,10 @@ pub enum MoveResult {
     Draw,
     Resign,
 }
+
+impl UcciCommand {
+    /// Serialize this command to UCCI protocol string format
+    pub fn serialize(&self) -> String {
+        crate::ucci::serializer::serialize_command(self)
+    }
+}

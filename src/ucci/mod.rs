@@ -4,6 +4,7 @@
 //! with external Chinese chess engines.
 
 pub mod protocol;
+pub mod serializer;
 
 pub use protocol::{
     EngineState, GoMode, MoveResult, OptionType, UcciCommand, UcciResponse,
