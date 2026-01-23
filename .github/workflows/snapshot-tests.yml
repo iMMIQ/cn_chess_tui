@@ -1,0 +1,46 @@
+name: Snapshot Tests
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  push:
+    branches: [master]
+
+jobs:
+  snapshot-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-insta
+        run: cargo install cargo-insta
+
+      - name: Run snapshot tests
+        run: cargo test --test ui_snapshots
+
+      - name: Review snapshot changes (PR only)
+        if: failure() && github.event_name == 'pull_request'
+        run: |
+          echo "Snapshot tests failed. Check the logs for details."
+          echo "If changes are intentional, run 'cargo insta accept' locally and commit."
+
+      - name: Upload snapshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-snapshots
+          path: tests/snapshots/
