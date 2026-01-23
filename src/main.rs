@@ -4,6 +4,7 @@ mod fen_io;
 mod fen_print;
 mod game;
 mod notation;
+mod pgn;
 mod types;
 mod ui;
 

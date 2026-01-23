@@ -1,6 +1,8 @@
 use crate::board::Board;
 use crate::fen::FenError;
 use crate::notation::iccs;
+use crate::notation::move_to_chinese_with_context;
+use crate::pgn::{PgnGame, PgnGameResult};
 use crate::types::{Color, Position};
 use std::fmt::{self, Display, Formatter};
 
@@ -290,7 +292,6 @@ impl Game {
         &mut self.board
     }
 
-    #[cfg(test)]
     #[allow(dead_code)]
     /// Force a game state for testing purposes
     pub fn force_state_for_testing(&mut self, state: GameState) {
@@ -316,6 +317,55 @@ impl Game {
         let full_move_count = (self.move_history.len() / 2) + 1;
 
         crate::fen::board_to_fen(&self.board, self.turn, 0, full_move_count as u32)
+    }
+
+    /// Export the game to PGN format
+    ///
+    /// Creates a PgnGame with standard tags and move history in Chinese notation.
+    ///
+    /// # Examples
+    /// ```
+    /// use cn_chess_tui::Game;
+    ///
+    /// let mut game = Game::new();
+    /// // Make some moves...
+    /// let pgn = game.to_pgn();
+    /// assert!(pgn.contains("[Red \"?\"]"));
+    /// assert!(pgn.contains("[Black \"?\"]"));
+    /// ```
+    pub fn to_pgn(&self) -> PgnGame {
+        let mut pgn_game = PgnGame::new();
+
+        // Set standard tags
+        pgn_game.set_tag("Game", "Chinese Chess");
+        pgn_game.set_tag("Red", "?");
+        pgn_game.set_tag("Black", "?");
+
+        // Set result based on game state
+        let result = match self.state {
+            GameState::Checkmate(Color::Red) => PgnGameResult::RedWins,
+            GameState::Checkmate(Color::Black) => PgnGameResult::BlackWins,
+            GameState::Stalemate => PgnGameResult::Draw,
+            GameState::Playing => PgnGameResult::Unknown,
+        };
+        pgn_game.set_tag("Result", result.to_pgn_string());
+
+        // Set date to today (using placeholder format)
+        pgn_game.set_tag("Date", "????.??.??");
+
+        // Add move history using Chinese notation with context
+        for record in &self.move_history {
+            let chinese_notation = move_to_chinese_with_context(
+                self,
+                record.piece,
+                record.mv.from,
+                record.mv.to,
+            );
+            pgn_game.add_move(chinese_notation);
+        }
+
+        pgn_game.result = result;
+        pgn_game
     }
 }
 

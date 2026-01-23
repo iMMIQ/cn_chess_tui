@@ -14,6 +14,8 @@ pub use fen_io::{load_fen_file, read_fen_file, write_fen_file};
 pub use fen_print::{print_board_ascii, print_game_state};
 pub use game::{Game, GameResult, GameState, Move, MoveError};
 pub use pgn::{PgnGame, PgnGameResult, PgnMove, PgnTag};
+// Re-export PgnGameResult as PgnResult for convenience
+pub use pgn::PgnGameResult as PgnResult;
 pub use types::{move_to_simple_notation, Color, Piece, PieceType, Position};
 
 // Re-export UI for testing
