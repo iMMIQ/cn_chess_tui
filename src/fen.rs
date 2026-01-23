@@ -245,6 +245,67 @@ pub fn board_to_fen(
     fen_parts.join(" ")
 }
 
+/// Parse FEN with moves format and create a Game
+///
+/// Accepts two formats:
+/// 1. UCCI format: `position fen <fen_string> moves <move1> <move2> ...`
+/// 2. Simplified: `<fen_string> moves <move1> <move2> ...`
+///
+/// Moves are in ICCS format (e.g., "b2c5", "h3e3")
+pub fn fen_with_moves_to_game(input: &str) -> Result<crate::game::Game, FenError> {
+    // Remove "position" prefix if present
+    let input = input.strip_prefix("position ").unwrap_or(input);
+
+    // Split by whitespace
+    let parts: Vec<&str> = input.split_whitespace().collect();
+
+    if parts.len() < 2 {
+        return Err(FenError::InvalidFormat);
+    }
+
+    // Find "fen" keyword and extract FEN string
+    let fen_start = if parts[0] == "fen" {
+        1
+    } else {
+        0
+    };
+
+    // FEN string has 6 parts: board turn - - half_move full_move
+    if parts.len() < fen_start + 6 {
+        return Err(FenError::InvalidFormat);
+    }
+
+    let fen_string = parts[fen_start..fen_start + 6].join(" ");
+
+    // Find "moves" keyword
+    let moves_start = fen_start + 6;
+    if moves_start >= parts.len() || parts[moves_start] != "moves" {
+        return Err(FenError::MissingMovesKeyword);
+    }
+
+    // Extract move strings
+    let move_strings: Vec<&str> = parts[moves_start + 1..].to_vec();
+    if move_strings.is_empty() {
+        return Err(FenError::EmptyMovesList);
+    }
+
+    // Create game
+    let mut game = crate::game::Game::from_fen(&fen_string)?;
+
+    // Apply each move
+    for mv_str in move_strings {
+        // Parse ICCS move
+        let (from, to) = crate::notation::iccs::iccs_to_move(mv_str)
+            .ok_or_else(|| FenError::InvalidMoveInHistory(mv_str.to_string()))?;
+
+        // Apply move
+        game.make_move(from, to)
+            .map_err(|_| FenError::InvalidMoveInHistory(mv_str.to_string()))?;
+    }
+
+    Ok(game)
+}
+
 // TODO: Add from_fen and to_fen functions in subsequent tasks
 
 #[cfg(test)]
@@ -374,5 +435,40 @@ mod tests {
             fen.contains("4k4"),
             "FEN should contain '4k4' for black general"
         );
+    }
+
+    #[test]
+    fn test_parse_fen_with_moves_simple() {
+        // Start position, one move (soldier from a6 to a5)
+        let input = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves a6a5";
+        let result = fen_with_moves_to_game(input);
+        assert!(result.is_ok(), "Should parse FEN with moves");
+
+        let game = result.unwrap();
+        // Move should have been applied
+        assert_eq!(game.turn(), Color::Black);
+        assert_eq!(game.get_moves().len(), 1);
+    }
+
+    #[test]
+    fn test_parse_fen_with_moves_ucci_format() {
+        // Full UCCI format with "position fen" prefix
+        let input = "position fen rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves a6a5";
+        let result = fen_with_moves_to_game(input);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_fen_with_moves_invalid_iccs() {
+        let input = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1 moves invalid";
+        let result = fen_with_moves_to_game(input);
+        assert!(matches!(result, Err(FenError::InvalidMoveInHistory(_))));
+    }
+
+    #[test]
+    fn test_parse_fen_with_moves_missing_moves_keyword() {
+        let input = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+        let result = fen_with_moves_to_game(input);
+        assert!(matches!(result, Err(FenError::MissingMovesKeyword)));
     }
 }
