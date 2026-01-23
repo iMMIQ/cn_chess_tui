@@ -19,4 +19,4 @@ pub use ui::UI;
 
 // Re-export notation types
 pub use notation::iccs::{iccs_to_move, iccs_to_position, move_to_iccs, position_to_iccs};
-pub use notation::{move_to_chinese, piece_to_chinese, MovementDirection};
+pub use notation::{move_to_chinese, move_to_chinese_with_context, piece_to_chinese, MovementDirection};

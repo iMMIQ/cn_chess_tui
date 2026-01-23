@@ -9,7 +9,9 @@
 //! - Directions: 进 (forward), 退 (backward), 平 (horizontal/same rank)
 //! - Uses Chinese numerals: 一二三四五六七八九
 
-use crate::types::{Color, Piece, Position};
+use crate::types::{Color, Piece, PieceType, Position};
+use crate::board::Board;
+use crate::Game;
 
 /// Direction of piece movement in Chinese notation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -184,6 +186,142 @@ pub fn piece_to_chinese(piece: Piece) -> &'static str {
 #[allow(dead_code)]
 pub fn move_to_chinese(piece: Piece, from: Position, to: Position) -> String {
     let piece_name = piece_to_chinese(piece);
+    let from_file = position_to_file_number(from, piece.color);
+    let from_chinese = file_number_to_chinese(from_file);
+    let direction = get_movement_direction(from, to, piece.color);
+    let dir_chinese = direction_to_chinese(direction);
+
+    let to_chinese = if direction == MovementDirection::Horizontal {
+        // For horizontal moves, use destination file number
+        let to_file = position_to_file_number(to, piece.color);
+        file_number_to_chinese(to_file)
+    } else {
+        // For forward/backward moves, use number of steps
+        let steps = from.y.abs_diff(to.y);
+        file_number_to_chinese(steps)
+    };
+
+    format!("{}{}{}{}", piece_name, from_chinese, dir_chinese, to_chinese)
+}
+
+/// Find all pieces of the same type and color on the same file
+fn find_pieces_on_same_file(board: &Board, piece: Piece, from: Position) -> Vec<Position> {
+    board
+        .pieces_of_color(piece.color)
+        .filter_map(|(pos, p)| {
+            if p.piece_type == piece.piece_type && pos.on_same_file(from) {
+                Some(pos)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// Handle soldier ambiguity when multiple soldiers are on the same file
+///
+/// Rules:
+/// - 2 soldiers: use 前兵/后兵
+/// - 3+ soldiers: use 一兵/二兵/三兵/四兵/五兵
+fn handle_soldier_ambiguity(
+    _board: &Board,
+    piece: Piece,
+    from: Position,
+    positions: &[Position],
+) -> String {
+    let count = positions.len();
+
+    if count == 2 {
+        // Use 前兵 or 后兵
+        // Sort by position: for Red, smaller Y is closer to enemy (forward)
+        // For Black, larger Y is closer to enemy (forward)
+        let mut sorted = positions.to_vec();
+        sorted.sort_by_key(|p| p.y);
+
+        let (front_pos, rear_pos) = match piece.color {
+            Color::Red => (sorted[0], sorted[1]),  // Red: smaller Y is front
+            Color::Black => (sorted[1], sorted[0]), // Black: larger Y is front
+        };
+
+        if from == front_pos {
+            "前兵".to_string()
+        } else if from == rear_pos {
+            "后兵".to_string()
+        } else {
+            // Fallback - shouldn't happen
+            piece_to_chinese(piece).to_string()
+        }
+    } else if count >= 3 {
+        // Use 一兵/二兵/三兵/四兵/五兵
+        // Number from front to back (closest to enemy = 1)
+        let mut sorted = positions.to_vec();
+        sorted.sort_by_key(|p| p.y);
+
+        let idx = match piece.color {
+            Color::Red => {
+                // Red: smaller Y is front, so index is already correct
+                sorted.iter().position(|p| *p == from).unwrap()
+            }
+            Color::Black => {
+                // Black: larger Y is front, so reverse the index
+                let pos = sorted.iter().position(|p| *p == from).unwrap();
+                sorted.len() - 1 - pos
+            }
+        };
+
+        let num = idx + 1; // 1-indexed
+        let chinese_num = file_number_to_chinese(num);
+        format!("{}兵", chinese_num)
+    } else {
+        // No ambiguity
+        piece_to_chinese(piece).to_string()
+    }
+}
+
+/// Convert a move to Chinese notation with context awareness
+///
+/// This function handles ambiguity when multiple pieces of the same type
+/// are on the same file. For soldiers, it uses 前兵/后兵 (for 2 soldiers)
+/// or 一兵/二兵/三兵 etc. (for 3+ soldiers).
+///
+/// Format: "炮二平五" or "前兵五进一" (Piece + FromFile + Direction + ToFile)
+///
+/// # Examples
+/// ```
+/// use cn_chess_tui::{
+///     types::{Color, Piece, PieceType, Position},
+///     Game,
+///     notation::chinese::move_to_chinese_with_context
+/// };
+///
+/// // Create a game with two soldiers on the same file
+/// let mut game = Game::new();
+/// game.board_mut().place_piece(Position::from_xy(4, 5), Piece::red(PieceType::Soldier));
+/// game.board_mut().place_piece(Position::from_xy(4, 3), Piece::red(PieceType::Soldier));
+///
+/// let piece = Piece::red(PieceType::Soldier);
+/// let from = Position::from_xy(4, 5);
+/// let to = Position::from_xy(4, 4);
+///
+/// // Should show "后兵五进一" (rear soldier)
+/// let notation = move_to_chinese_with_context(&game, piece, from, to);
+/// ```
+pub fn move_to_chinese_with_context(game: &Game, piece: Piece, from: Position, to: Position) -> String {
+    let piece_name = if piece.piece_type == PieceType::Soldier {
+        // Check for soldier ambiguity
+        let positions = find_pieces_on_same_file(game.board(), piece, from);
+
+        if positions.len() > 1 {
+            handle_soldier_ambiguity(game.board(), piece, from, &positions)
+        } else {
+            piece_to_chinese(piece).to_string()
+        }
+    } else {
+        // For other pieces, use basic notation for now
+        // TODO: Implement full ambiguity resolution for advisors/elephants/etc.
+        piece_to_chinese(piece).to_string()
+    };
+
     let from_file = position_to_file_number(from, piece.color);
     let from_chinese = file_number_to_chinese(from_file);
     let direction = get_movement_direction(from, to, piece.color);
